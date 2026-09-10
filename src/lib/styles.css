@@ -1,0 +1,10 @@
+@import "tailwindcss";
+@source "./**/*.{svelte,ts}";
+
+.floorplan-editor {
+  color: #0f172a;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  isolation: isolate;
+  min-height: 32rem;
+  width: 100%;
+}

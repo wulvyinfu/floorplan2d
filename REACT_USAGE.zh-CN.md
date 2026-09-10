@@ -1,0 +1,692 @@
+# Floorplan XG React 接入文档
+
+`floorplan-xg` 是一个可在 React 18/19 项目中直接使用的二维户型编辑器组件。组件以 ES Module 发布，提供户型绘制、门、外部物件、批量设备、房间预设、房间模板和漫游路线能力。
+
+## 1. 环境要求
+
+- React 18.2 或 React 19
+- React DOM 18.2 或 React DOM 19
+- Svelte 5
+- 支持 ES Module 的构建工具，例如 Vite、Webpack 5 或 Next.js
+
+组件对 React 暴露标准的 `<FloorplanEditor />`，接入方不需要编写 Svelte 代码。
+
+## 2. 生成和安装组件包
+
+在组件源码项目中执行：
+
+```bash
+npm install
+npm run package
+npm pack
+```
+
+构建结果：
+
+```text
+dist/floorplan-xg.es.js
+dist/floorplan-xg.css
+dist/index.d.ts
+floorplan-xg-0.9.0.tgz
+```
+
+在 React 项目中安装本地包：
+
+```bash
+npm install /absolute/path/floorplan-xg-0.9.0.tgz
+```
+
+发布到 npm 后安装：
+
+```bash
+npm install floorplan-xg
+```
+
+如果包管理器没有自动安装 peer dependency，请执行：
+
+```bash
+npm install react react-dom svelte
+```
+
+## 3. 最小使用示例
+
+```tsx
+import { FloorplanEditor } from 'floorplan-xg';
+import 'floorplan-xg/styles.css';
+
+export default function App() {
+  return (
+    <FloorplanEditor
+      height="100vh"
+      autoSave={false}
+    />
+  );
+}
+```
+
+必须引入组件样式：
+
+```tsx
+import 'floorplan-xg/styles.css';
+```
+
+`height` 可以传入任意合法 CSS 高度值，例如 `800px`、`100vh` 或 `calc(100vh - 64px)`。
+
+## 4. 受控项目数据
+
+推荐由 React 保存当前项目数据：
+
+```tsx
+import { useState } from 'react';
+import {
+  FloorplanEditor,
+  createDefaultProject,
+  type Project
+} from 'floorplan-xg';
+import 'floorplan-xg/styles.css';
+
+export default function App() {
+  const [project, setProject] = useState<Project>(() =>
+    createDefaultProject('数据中心平面图')
+  );
+
+  return (
+    <FloorplanEditor
+      project={project}
+      onProjectChange={setProject}
+      autoSave={false}
+      height="100vh"
+    />
+  );
+}
+```
+
+编辑器发生墙体、门、物件、房间或漫游路线变化时，会通过 `onProjectChange` 返回完整项目。
+
+## 5. 自定义物件目录
+
+物件目录默认为空，只显示外部传入的物件。`src` 可省略，无图片时使用 `shape` 绘制矩形或圆形。
+
+```tsx
+import type { CustomPattern } from 'floorplan-xg';
+
+const customObjects: CustomPattern[] = [
+  {
+    id: 'cabinet-42u',
+    name: '42U 机柜',
+    category: '机房设备',
+    shape: 'rectangle',
+    width: 60,
+    depth: 120,
+    height: 200,
+    color: '#475569'
+  },
+  {
+    id: 'temperature-sensor',
+    name: '温度传感器',
+    category: '传感器',
+    shape: 'circle',
+    width: 40,
+    depth: 40,
+    color: '#16a34a'
+  },
+  {
+    id: 'ups-device',
+    name: 'UPS',
+    category: '供电设备',
+    src: '/floorplan-assets/ups.svg',
+    shape: 'rectangle',
+    width: 80,
+    depth: 100,
+    height: 180
+  }
+];
+
+<FloorplanEditor customObjects={customObjects} />
+```
+
+`shape` 支持：
+
+```ts
+type ObjectShape = 'rectangle' | 'circle';
+```
+
+传入图片时优先显示图片；图片缺失或加载失败时使用 `shape`。远程图片需要允许浏览器跨域访问。
+
+## 6. 批量生成相同设备
+
+通过 ref 调用 `generateObjects()`，一份设备定义可以生成任意数量的实例。
+
+```tsx
+import { useRef } from 'react';
+import {
+  FloorplanEditor,
+  GenerateObjectsError,
+  type FloorplanEditorHandle
+} from 'floorplan-xg';
+
+export default function App() {
+  const editorRef = useRef<FloorplanEditorHandle>(null);
+
+  function addCabinets() {
+    try {
+      const result = editorRef.current?.generateObjects({
+        definition: {
+          id: 'cabinet-42u',
+          name: '42U 机柜',
+          category: '机房设备',
+          shape: 'rectangle',
+          width: 60,
+          depth: 120,
+          height: 200,
+          color: '#475569'
+        },
+        instances: Array.from({ length: 10 }, (_, index) => ({
+          externalId: `cabinet-${index + 1}`,
+          position: {
+            x: 100 + index * 90,
+            y: 200
+          },
+          rotation: 0,
+          label: {
+            text: `机柜 ${String(index + 1).padStart(2, '0')}`,
+            color: '#0f172a',
+            fontSize: 12,
+            offsetX: 0,
+            offsetY: 12
+          }
+        }))
+      });
+
+      console.log(result?.generated);
+    } catch (error) {
+      if (error instanceof GenerateObjectsError) {
+        console.error(error.issues);
+      }
+    }
+  }
+
+  return (
+    <>
+      <button type="button" onClick={addCabinets}>
+        添加 10 个机柜
+      </button>
+      <FloorplanEditor
+        ref={editorRef}
+        autoSave={false}
+        height="800px"
+      />
+    </>
+  );
+}
+```
+
+每个实例支持以下属性：
+
+```ts
+interface DeviceInstanceInput {
+  externalId?: string;
+  floorId?: string;
+  position: { x: number; y: number };
+  rotation?: number;
+  scale?: Partial<{ x: number; y: number; z: number }>;
+  color?: string;
+  width?: number;
+  depth?: number;
+  height?: number;
+  material?: string;
+  locked?: boolean;
+  label?: string | ObjectLabel;
+}
+```
+
+`externalId` 用于关联第三方业务数据。调用结果中的 `generated` 会返回第三方 ID 与编辑器内部 ID 的映射：
+
+```ts
+interface GeneratedObjectResult {
+  externalId?: string;
+  objectId: string;
+  catalogId: string;
+  floorId: string;
+}
+```
+
+批量操作会先校验全部数据。任意实例无效时抛出 `GenerateObjectsError`，整批数据不会部分写入。
+
+## 7. 物件新增回调
+
+```tsx
+import type { ObjectAddedEvent } from 'floorplan-xg';
+
+function handleObjectAdded(event: ObjectAddedEvent) {
+  console.log(event.object);
+  console.log(event.object.label?.text);
+  console.log(event.floor.id);
+  console.log(event.definition);
+  console.log(event.source);
+}
+
+<FloorplanEditor onObjectAdded={handleObjectAdded} />
+```
+
+事件结构：
+
+```ts
+interface ObjectAddedEvent {
+  object: FurnitureItem;
+  floor: Floor;
+  definition?: CustomPattern;
+  source: 'editor' | 'batch';
+}
+```
+
+- 用户点击或拖放创建物件时，`source` 为 `editor`。
+- `generateObjects()` 创建物件时，`source` 为 `batch`。
+- 批量创建 10 个设备时逐个触发 10 次。
+- 初始项目和 `loadProject()` 中已有物件不会触发。
+
+## 8. 房间预设和模板
+
+房间预设与模板默认为空，均由外部传入。
+
+```tsx
+import type {
+  RoomPreset,
+  RoomTemplate
+} from 'floorplan-xg';
+
+const roomPresets: RoomPreset[] = [
+  {
+    id: 'rectangle-room',
+    name: '矩形房间',
+    icon: '▭',
+    description: '标准矩形空间',
+    getWalls(width, height) {
+      return [
+        { start: { x: 0, y: 0 }, end: { x: width, y: 0 } },
+        { start: { x: width, y: 0 }, end: { x: width, y: height } },
+        { start: { x: width, y: height }, end: { x: 0, y: height } },
+        { start: { x: 0, y: height }, end: { x: 0, y: 0 } }
+      ];
+    }
+  }
+];
+
+const roomTemplates: RoomTemplate[] = [
+  {
+    name: '标准机房',
+    presetId: 'rectangle-room',
+    furniture: [
+      {
+        catalogId: 'cabinet-42u',
+        x: 100,
+        y: 100,
+        rotation: 0
+      }
+    ]
+  }
+];
+
+<FloorplanEditor
+  customObjects={customObjects}
+  roomPresets={roomPresets}
+  roomTemplates={roomTemplates}
+/>
+```
+
+模板中的 `presetId` 必须对应房间预设 ID，`catalogId` 必须对应外部物件 ID。
+
+## 9. 漫游标点和路线
+
+用户可在“建造 → 漫游标点”中连续点击画布。标点按照数组顺序自动连接，切换到选择工具后可以选择、拖动和删除标点。
+
+React 可以主动切换工具：
+
+```tsx
+editorRef.current?.setTool('walkthrough');
+```
+
+通过 API 增加单个标点：
+
+```tsx
+const point = editorRef.current?.addWalkthroughPoint(
+  { x: 100, y: 200 },
+  '入口'
+);
+```
+
+批量设置当前楼层路线：
+
+```tsx
+editorRef.current?.setWalkthroughPoints([
+  { id: 'route-1', x: 100, y: 200, name: '入口' },
+  { id: 'route-2', x: 300, y: 200, name: '机房' },
+  { id: 'route-3', x: 500, y: 350, name: '出口' }
+]);
+```
+
+设置指定楼层：
+
+```tsx
+editorRef.current?.setWalkthroughPoints(points, floorId);
+```
+
+监听新增标点：
+
+```tsx
+import type { WalkthroughPointAddedEvent } from 'floorplan-xg';
+
+function handlePointAdded(event: WalkthroughPointAddedEvent) {
+  console.log(event.point);
+  console.log(event.floor.id);
+  console.log(event.index);
+  console.log(event.source);
+}
+
+<FloorplanEditor
+  ref={editorRef}
+  onWalkthroughPointAdded={handlePointAdded}
+/>
+```
+
+`source` 为：
+
+- `editor`：用户在画布上标点。
+- `api`：通过 `addWalkthroughPoint()` 或 `setWalkthroughPoints()` 添加。
+
+路线保存在对应楼层的 `walkthroughPoints` 中：
+
+```ts
+const project = editorRef.current?.getProject();
+const activeFloor = project?.floors.find(
+  (floor) => floor.id === project.activeFloorId
+);
+const route = activeFloor?.walkthroughPoints ?? [];
+```
+
+连线不单独保存，而是根据数组顺序生成。删除中间标点后，前后标点自动重新连接。
+
+## 10. 自定义 React 模块
+
+可以向编辑器的四个区域注入 React 节点：
+
+```tsx
+<FloorplanEditor
+  modules={{
+    toolbar: <div>顶部扩展操作</div>,
+    leftPanel: <aside>左侧业务目录</aside>,
+    rightPanel: <aside>右侧业务信息</aside>,
+    canvasOverlay: (
+      <button
+        type="button"
+        style={{
+          position: 'absolute',
+          top: 12,
+          right: 12,
+          pointerEvents: 'auto'
+        }}
+      >
+        画布操作
+      </button>
+    )
+  }}
+/>
+```
+
+`canvasOverlay` 容器默认不拦截画布事件，可交互元素需要设置 `pointerEvents: 'auto'`。
+
+## 11. Ref API
+
+```ts
+interface FloorplanEditorHandle {
+  getProject(): Project | null;
+  loadProject(project: Project): void;
+  focus(): void;
+  registerPattern(pattern: CustomPattern): void;
+  removePattern(id: string): void;
+  setRoomCatalogs(
+    presets: readonly RoomPreset[],
+    templates: readonly RoomTemplate[]
+  ): void;
+  generateObjects(input: GenerateObjectsInput): GenerateObjectsResult;
+  setTool(tool: Tool): void;
+  addWalkthroughPoint(position: Point, name?: string): WalkthroughPoint;
+  setWalkthroughPoints(
+    points: readonly WalkthroughPoint[],
+    floorId?: string
+  ): void;
+}
+```
+
+获取当前项目：
+
+```tsx
+const project = editorRef.current?.getProject();
+```
+
+载入项目：
+
+```tsx
+editorRef.current?.loadProject(nextProject);
+```
+
+动态注册物件：
+
+```tsx
+editorRef.current?.registerPattern({
+  id: 'camera',
+  name: '摄像头',
+  category: '安防设备',
+  shape: 'circle',
+  width: 30,
+  depth: 30
+});
+```
+
+## 12. 自定义数据存储
+
+需要自动保存到后端时，实现 `DataStore`：
+
+```tsx
+import type { DataStore, Project } from 'floorplan-xg';
+
+const apiStore: DataStore = {
+  async save(project) {
+    await fetch(`/api/projects/${project.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(project)
+    });
+  },
+
+  async load(id) {
+    const response = await fetch(`/api/projects/${id}`);
+    if (!response.ok) return null;
+    const project = await response.json();
+    return {
+      ...project,
+      createdAt: new Date(project.createdAt),
+      updatedAt: new Date(project.updatedAt)
+    } as Project;
+  },
+
+  async list() {
+    const response = await fetch('/api/projects');
+    return response.json();
+  },
+
+  async delete(id) {
+    await fetch(`/api/projects/${id}`, { method: 'DELETE' });
+  },
+
+  async duplicate() {
+    return null;
+  },
+
+  saveThumbnail() {},
+
+  getThumbnail() {
+    return null;
+  }
+};
+
+<FloorplanEditor
+  dataStore={apiStore}
+  autoSave
+/>
+```
+
+如果由外部 React 状态或业务接口负责保存，建议设置：
+
+```tsx
+<FloorplanEditor autoSave={false} />
+```
+
+## 13. Next.js 使用
+
+编辑器依赖浏览器 Canvas，应在客户端组件中使用：
+
+```tsx
+'use client';
+
+import { FloorplanEditor } from 'floorplan-xg';
+import 'floorplan-xg/styles.css';
+
+export default function EditorPage() {
+  return (
+    <FloorplanEditor
+      autoSave={false}
+      height="100vh"
+    />
+  );
+}
+```
+
+全局 CSS 也可以在 Next.js 根布局中引入。
+
+## 14. 完整接入示例
+
+```tsx
+import { useRef, useState } from 'react';
+import {
+  FloorplanEditor,
+  createDefaultProject,
+  type FloorplanEditorHandle,
+  type ObjectAddedEvent,
+  type Project,
+  type WalkthroughPointAddedEvent
+} from 'floorplan-xg';
+import 'floorplan-xg/styles.css';
+
+const customObjects = [
+  {
+    id: 'cabinet-42u',
+    name: '42U 机柜',
+    category: '机房设备',
+    shape: 'rectangle' as const,
+    width: 60,
+    depth: 120,
+    height: 200
+  }
+];
+
+const roomPresets = [
+  {
+    id: 'rectangle-room',
+    name: '矩形房间',
+    icon: '▭',
+    description: '标准矩形空间',
+    getWalls(width: number, height: number) {
+      return [
+        { start: { x: 0, y: 0 }, end: { x: width, y: 0 } },
+        { start: { x: width, y: 0 }, end: { x: width, y: height } },
+        { start: { x: width, y: height }, end: { x: 0, y: height } },
+        { start: { x: 0, y: height }, end: { x: 0, y: 0 } }
+      ];
+    }
+  }
+];
+
+const roomTemplates = [
+  {
+    name: '标准机房',
+    presetId: 'rectangle-room',
+    furniture: [
+      { catalogId: 'cabinet-42u', x: 100, y: 100, rotation: 0 }
+    ]
+  }
+];
+
+export default function App() {
+  const editorRef = useRef<FloorplanEditorHandle>(null);
+  const [project, setProject] = useState<Project>(() =>
+    createDefaultProject('机房平面图')
+  );
+
+  function handleObjectAdded(event: ObjectAddedEvent) {
+    console.log('新增设备', event.object.id, event.source);
+  }
+
+  function handlePointAdded(event: WalkthroughPointAddedEvent) {
+    console.log('新增漫游点', event.point.id, event.index);
+  }
+
+  return (
+    <FloorplanEditor
+      ref={editorRef}
+      project={project}
+      customObjects={customObjects}
+      roomPresets={roomPresets}
+      roomTemplates={roomTemplates}
+      autoSave={false}
+      height="100vh"
+      onProjectChange={setProject}
+      onObjectAdded={handleObjectAdded}
+      onWalkthroughPointAdded={handlePointAdded}
+    />
+  );
+}
+```
+
+## 15. 注意事项
+
+- 当前组件为纯二维编辑器，不包含 Three.js 和 3D 模块。
+- 坐标和尺寸统一使用厘米。
+- 旋转角度使用度数。
+- `customObjects`、房间预设和房间模板默认均为空。
+- 建造模块保留选择、墙体、漫游标点、单开门和双开门。
+- 使用 ref 方法前应确保组件已经挂载，可通过 `onReady` 获取就绪通知。
+- 不建议同时使用 `customObjects` 受控属性和 `registerPattern()` 修改同一物件 ID。
+- `loadProject()` 不会触发物件或漫游标点的新增回调。
+- 项目 JSON 中的日期从服务端读取后应恢复为 `Date` 对象。
+- 当前版本适合单编辑器实例页面；同页多实例仍可能共享内部状态。
+
+## 16. Props 速查
+
+| 属性 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `project` | `Project` | 自动创建 | 当前项目数据 |
+| `height` | `CSSProperties['height']` | `100vh` | 编辑器高度 |
+| `autoSave` | `boolean` | `true` | 是否使用 DataStore 自动保存 |
+| `dataStore` | `DataStore` | 本地存储 | 自定义持久化适配器 |
+| `customObjects` | `CustomPattern[]` | `[]` | 外部物件目录 |
+| `roomPresets` | `RoomPreset[]` | `[]` | 外部房间预设 |
+| `roomTemplates` | `RoomTemplate[]` | `[]` | 外部房间模板 |
+| `modules` | `FloorplanEditorModules` | 无 | React 扩展模块 |
+| `onProjectChange` | `(project) => void` | 无 | 项目变化回调 |
+| `onObjectAdded` | `(event) => void` | 无 | 物件新增回调 |
+| `onWalkthroughPointAdded` | `(event) => void` | 无 | 漫游点新增回调 |
+| `onReady` | `(handle) => void` | 无 | 编辑器就绪回调 |
+
+## 17. 撤销与重做快捷键
+
+编辑器挂载后支持以下快捷键：
+
+| 功能 | Windows / Linux | macOS |
+| --- | --- | --- |
+| 撤销 | `Ctrl+Z` | `Command+Z` |
+| 重做 | `Ctrl+Y` 或 `Ctrl+Shift+Z` | `Command+Shift+Z` |
+
+快捷键适用于墙体、门、物件、房间和漫游标点等进入历史栈的编辑操作。在输入框、文本域、下拉框或可编辑文本区域中使用这些组合键时，将保留浏览器原生的文字撤销与重做行为，不会修改户型数据。

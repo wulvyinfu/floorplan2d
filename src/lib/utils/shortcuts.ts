@@ -1,0 +1,75 @@
+import { selectedTool, undo, redo, selectedElementId, selectedElementIds, removeElement, panMode, beginUndoGroup, endUndoGroup } from '$lib/stores/project';
+import { get } from 'svelte/store';
+import { localStore } from '$lib/services/datastore';
+import { currentProject } from '$lib/stores/project';
+
+export interface ShortcutContext {
+  rotateFurniture?: () => void;
+  save?: () => void;
+}
+
+export function handleGlobalShortcut(e: KeyboardEvent, ctx: ShortcutContext = {}): boolean {
+  if (e.defaultPrevented) return false;
+  const target = e.target;
+  if (target instanceof HTMLElement && (target.isContentEditable || target.closest('input, textarea, select, [contenteditable="true"]'))) return false;
+  const mod = e.metaKey || e.ctrlKey;
+  const key = e.key.toLowerCase();
+
+  // Ctrl+Z undo
+  if (mod && !e.altKey && key === 'z' && !e.shiftKey) {
+    e.preventDefault();
+    undo();
+    return true;
+  }
+  // Ctrl+Y or Ctrl+Shift+Z redo
+  if (mod && !e.altKey && (key === 'y' || (key === 'z' && e.shiftKey))) {
+    e.preventDefault();
+    redo();
+    return true;
+  }
+  // Ctrl+S save
+  if (mod && key === 's') {
+    e.preventDefault();
+    if (ctx.save) ctx.save();
+    else {
+      const p = get(currentProject);
+      if (p) localStore.save(p);
+    }
+    return true;
+  }
+
+  if (e.key === 'Escape') {
+    selectedTool.set('select');
+    selectedElementId.set(null);
+    selectedElementIds.set(new Set());
+    return true;
+  }
+  if (e.key === 'Delete' || e.key === 'Backspace') {
+    const multiIds = get(selectedElementIds);
+    if (multiIds.size > 0) {
+      beginUndoGroup();
+      for (const id of multiIds) removeElement(id);
+      endUndoGroup();
+      selectedElementIds.set(new Set());
+      selectedElementId.set(null);
+    } else {
+      const id = get(selectedElementId);
+      if (id) { removeElement(id); selectedElementId.set(null); }
+    }
+    return true;
+  }
+  if (e.key === 'w' || e.key === 'W') { selectedTool.set('wall'); panMode.set(false); return true; }
+  if (e.key === 'd' || e.key === 'D') { selectedTool.set('door'); panMode.set(false); return true; }
+  if (e.key === 'v' || e.key === 'V') { selectedTool.set('select'); panMode.set(false); return true; }
+  if (e.key === 'h' || e.key === 'H') { panMode.set(true); return true; }
+  if (e.key === 't' || e.key === 'T') { selectedTool.set('text'); panMode.set(false); return true; }
+  if (e.key === 'r' || e.key === 'R') {
+    if (ctx.rotateFurniture) ctx.rotateFurniture();
+    return true;
+  }
+  if (e.key === 'g' || e.key === 'G') {
+    // Handled in canvas component
+    return false;
+  }
+  return false;
+}
