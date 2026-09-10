@@ -2,16 +2,16 @@
 
 **Free Open Source 2D Floor Plan Editor**
 
-Design floor plans in an intuitive 2D editor, then instantly preview them in a fully navigable 3D view — all in your browser. No account required, no server dependency; your projects stay on your device.
+当前项目由openplan3d进行轻量化的2d项目，能够快速绘制2d平面图并且导出数据，目前部分功能已经被隐藏。目前仅为适配本地项目使用。
 
-<p align="center">
+<!-- <p align="center">
   <img src="plan1_2d.jpg" alt="2D Floor Plan View" width="48%">
   <img src="plan1_3d.jpg" alt="3D Floor Plan View" width="48%">
 </p>
 <p align="center">
   <img src="plan4_2d.jpg" alt="Detailed 2D Plan" width="48%">
   <img src="plan4_3d.jpg" alt="Detailed 3D View" width="48%">
-</p>
+</p> -->
 
 ---
 
@@ -74,19 +74,11 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-### React Component Package
-
-Build the reusable React package:
-
-```bash
-npm run package
-npm pack
-```
 
 Install the generated package in a React project:
 
 ```bash
-npm install ./floorplan2d-0.9.0.tgz react react-dom svelte
+npm install floorplan2d
 ```
 
 Then render the editor directly in JSX:
