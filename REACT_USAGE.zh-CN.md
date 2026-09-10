@@ -1,6 +1,6 @@
 # Floorplan XG React 接入文档
 
-`floorplan-xg` 是一个可在 React 18/19 项目中直接使用的二维户型编辑器组件。组件以 ES Module 发布，提供户型绘制、门、外部物件、批量设备、房间预设、房间模板和漫游路线能力。
+`floorplan2d` 是一个可在 React 18/19 项目中直接使用的二维户型编辑器组件。组件以 ES Module 发布，提供户型绘制、门、外部物件、批量设备、房间预设、房间模板和漫游路线能力。
 
 ## 1. 环境要求
 
@@ -24,22 +24,22 @@ npm pack
 构建结果：
 
 ```text
-dist/floorplan-xg.es.js
-dist/floorplan-xg.css
+dist/floorplan2d.es.js
+dist/floorplan2d.css
 dist/index.d.ts
-floorplan-xg-0.9.0.tgz
+floorplan2d-0.9.0.tgz
 ```
 
 在 React 项目中安装本地包：
 
 ```bash
-npm install /absolute/path/floorplan-xg-0.9.0.tgz
+npm install /absolute/path/floorplan2d-0.9.0.tgz
 ```
 
 发布到 npm 后安装：
 
 ```bash
-npm install floorplan-xg
+npm install floorplan2d
 ```
 
 如果包管理器没有自动安装 peer dependency，请执行：
@@ -51,8 +51,8 @@ npm install react react-dom svelte
 ## 3. 最小使用示例
 
 ```tsx
-import { FloorplanEditor } from 'floorplan-xg';
-import 'floorplan-xg/styles.css';
+import { FloorplanEditor } from 'floorplan2d';
+import 'floorplan2d/styles.css';
 
 export default function App() {
   return (
@@ -67,7 +67,7 @@ export default function App() {
 必须引入组件样式：
 
 ```tsx
-import 'floorplan-xg/styles.css';
+import 'floorplan2d/styles.css';
 ```
 
 `height` 可以传入任意合法 CSS 高度值，例如 `800px`、`100vh` 或 `calc(100vh - 64px)`。
@@ -82,8 +82,8 @@ import {
   FloorplanEditor,
   createDefaultProject,
   type Project
-} from 'floorplan-xg';
-import 'floorplan-xg/styles.css';
+} from 'floorplan2d';
+import 'floorplan2d/styles.css';
 
 export default function App() {
   const [project, setProject] = useState<Project>(() =>
@@ -108,7 +108,7 @@ export default function App() {
 物件目录默认为空，只显示外部传入的物件。`src` 可省略，无图片时使用 `shape` 绘制矩形或圆形。
 
 ```tsx
-import type { CustomPattern } from 'floorplan-xg';
+import type { CustomPattern } from 'floorplan2d';
 
 const customObjects: CustomPattern[] = [
   {
@@ -163,7 +163,7 @@ import {
   FloorplanEditor,
   GenerateObjectsError,
   type FloorplanEditorHandle
-} from 'floorplan-xg';
+} from 'floorplan2d';
 
 export default function App() {
   const editorRef = useRef<FloorplanEditorHandle>(null);
@@ -256,7 +256,7 @@ interface GeneratedObjectResult {
 ## 7. 物件新增回调
 
 ```tsx
-import type { ObjectAddedEvent } from 'floorplan-xg';
+import type { ObjectAddedEvent } from 'floorplan2d';
 
 function handleObjectAdded(event: ObjectAddedEvent) {
   console.log(event.object);
@@ -293,7 +293,7 @@ interface ObjectAddedEvent {
 import type {
   RoomPreset,
   RoomTemplate
-} from 'floorplan-xg';
+} from 'floorplan2d';
 
 const roomPresets: RoomPreset[] = [
   {
@@ -374,7 +374,7 @@ editorRef.current?.setWalkthroughPoints(points, floorId);
 监听新增标点：
 
 ```tsx
-import type { WalkthroughPointAddedEvent } from 'floorplan-xg';
+import type { WalkthroughPointAddedEvent } from 'floorplan2d';
 
 function handlePointAdded(event: WalkthroughPointAddedEvent) {
   console.log(event.point);
@@ -488,7 +488,7 @@ editorRef.current?.registerPattern({
 需要自动保存到后端时，实现 `DataStore`：
 
 ```tsx
-import type { DataStore, Project } from 'floorplan-xg';
+import type { DataStore, Project } from 'floorplan2d';
 
 const apiStore: DataStore = {
   async save(project) {
@@ -551,8 +551,8 @@ const apiStore: DataStore = {
 ```tsx
 'use client';
 
-import { FloorplanEditor } from 'floorplan-xg';
-import 'floorplan-xg/styles.css';
+import { FloorplanEditor } from 'floorplan2d';
+import 'floorplan2d/styles.css';
 
 export default function EditorPage() {
   return (
@@ -577,8 +577,8 @@ import {
   type ObjectAddedEvent,
   type Project,
   type WalkthroughPointAddedEvent
-} from 'floorplan-xg';
-import 'floorplan-xg/styles.css';
+} from 'floorplan2d';
+import 'floorplan2d/styles.css';
 
 const customObjects = [
   {

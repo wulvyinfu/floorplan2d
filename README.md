@@ -1,6 +1,6 @@
-# openplan3d
+# floorplan2d
 
-**Free Open Source 2D/3D Floor Plan Editor**
+**Free Open Source 2D Floor Plan Editor**
 
 Design floor plans in an intuitive 2D editor, then instantly preview them in a fully navigable 3D view — all in your browser. No account required, no server dependency; your projects stay on your device.
 
@@ -86,15 +86,15 @@ npm pack
 Install the generated package in a React project:
 
 ```bash
-npm install ./floorplan-xg-0.9.0.tgz react react-dom svelte
+npm install ./floorplan2d-0.9.0.tgz react react-dom svelte
 ```
 
 Then render the editor directly in JSX:
 
 ```tsx
 import { useState } from 'react';
-import { FloorplanEditor, createDefaultProject } from 'floorplan-xg';
-import 'floorplan-xg/styles.css';
+import { FloorplanEditor, createDefaultProject } from 'floorplan2d';
+import 'floorplan2d/styles.css';
 
 export default function App() {
   const [project, setProject] = useState(() => createDefaultProject());
@@ -150,7 +150,7 @@ const customObjects = [{
 #### 房间预设与模板
 
 ```tsx
-import type { RoomPreset, RoomTemplate } from 'floorplan-xg';
+import type { RoomPreset, RoomTemplate } from 'floorplan2d';
 
 const roomPresets: RoomPreset[] = [{
   id: 'rectangle',
@@ -186,7 +186,7 @@ const roomTemplates: RoomTemplate[] = [{
 
 ```tsx
 import { useRef } from 'react';
-import { FloorplanEditor, GenerateObjectsError, type FloorplanEditorHandle } from 'floorplan-xg';
+import { FloorplanEditor, GenerateObjectsError, type FloorplanEditorHandle } from 'floorplan2d';
 
 const editorRef = useRef<FloorplanEditorHandle>(null);
 
@@ -230,7 +230,7 @@ function addTenCabinets() {
 #### 物件新增回调
 
 ```tsx
-import type { ObjectAddedEvent } from 'floorplan-xg';
+import type { ObjectAddedEvent } from 'floorplan2d';
 
 function handleObjectAdded(event: ObjectAddedEvent) {
   console.log('新增物件', event.object);

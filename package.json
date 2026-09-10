@@ -1,5 +1,5 @@
 {
-	"name": "floorplan-xg",
+	"name": "floorplan2d",
 	"private": false,
 	"version": "0.9.0",
 	"description": "Reusable 2D floor plan editor for React applications",
@@ -16,14 +16,14 @@
 		"REACT_USAGE.zh-CN.md",
 		"LICENSE"
 	],
-	"module": "./dist/floorplan-xg.es.js",
+	"module": "./dist/floorplan2d.es.js",
 	"types": "./dist/index.d.ts",
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
-			"import": "./dist/floorplan-xg.es.js"
+			"import": "./dist/floorplan2d.es.js"
 		},
-		"./styles.css": "./dist/floorplan-xg.css"
+		"./styles.css": "./dist/floorplan2d.css"
 	},
 	"scripts": {
 		"dev": "vite dev",

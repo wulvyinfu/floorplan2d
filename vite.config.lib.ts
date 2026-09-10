@@ -59,8 +59,8 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, 'src/lib/react.ts'),
       formats: ['es'],
-      fileName: () => 'floorplan-xg.es.js',
-      cssFileName: 'floorplan-xg'
+      fileName: () => 'floorplan2d.es.js',
+      cssFileName: 'floorplan2d'
     },
     rollupOptions: {
       external: [/^svelte(?:\/.*)?$/, /^react(?:\/.*)?$/, /^react-dom(?:\/.*)?$/],
