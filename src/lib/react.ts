@@ -25,6 +25,7 @@ export interface FloorplanEditorHandle {
   setTool(tool: Tool): void;
   addWalkthroughPoint(position: Point, name?: string): WalkthroughPoint;
   setWalkthroughPoints(points: readonly WalkthroughPoint[], floorId?: string): void;
+  normalizeCoordinates(floorId?: string): Point | null;
 }
 
 export type FloorplanEditorModulePosition = 'toolbar' | 'leftPanel' | 'rightPanel' | 'canvasOverlay';
@@ -109,7 +110,8 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
       if (!handleRef.current) throw new Error('编辑器尚未初始化，请在 onReady 后调用');
       return handleRef.current.addWalkthroughPoint(position, name);
     },
-    setWalkthroughPoints: (points, floorId) => handleRef.current?.setWalkthroughPoints(points, floorId)
+    setWalkthroughPoints: (points, floorId) => handleRef.current?.setWalkthroughPoints(points, floorId),
+    normalizeCoordinates: (floorId) => handleRef.current?.normalizeCoordinates(floorId) ?? null
   }), []);
 
   useEffect(() => {

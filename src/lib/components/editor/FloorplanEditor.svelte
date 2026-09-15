@@ -7,7 +7,7 @@
   import type { DataStore } from '$lib/services/datastore';
   import { localStore } from '$lib/services/datastore';
   import { configureRuntime } from '$lib/runtime';
-  import { addWalkthroughPoint as addProjectWalkthroughPoint, currentProject, createDefaultProject, generateObjects as generateProjectObjects, selectedTool, setWalkthroughPoints as setProjectWalkthroughPoints } from '$lib/stores/project';
+  import { addWalkthroughPoint as addProjectWalkthroughPoint, currentProject, createDefaultProject, generateObjects as generateProjectObjects, normalizeCoordinates as normalizeProjectCoordinates, selectedTool, setWalkthroughPoints as setProjectWalkthroughPoints } from '$lib/stores/project';
   import type { Tool } from '$lib/stores/project';
   import { registerCustomPattern, removeCustomPattern, setCustomPatterns } from '$lib/utils/customPatterns';
   import TopBar from '$lib/components/toolbar/TopBar.svelte';
@@ -33,6 +33,7 @@
     setTool(tool: Tool): void;
     addWalkthroughPoint(position: Point, name?: string): WalkthroughPoint;
     setWalkthroughPoints(points: readonly WalkthroughPoint[], floorId?: string): void;
+    normalizeCoordinates(floorId?: string): Point | null;
   }
 
   type ModulePosition = 'toolbar' | 'leftPanel' | 'rightPanel' | 'canvasOverlay';
@@ -171,6 +172,10 @@
     }
   }
 
+  export function normalizeCoordinates(floorId?: string) {
+    return normalizeProjectCoordinates(floorId);
+  }
+
   function handleKeydown(event: KeyboardEvent) {
     const target = event.target as HTMLElement;
     const editing = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable;
@@ -246,7 +251,7 @@
       }
     });
 
-    onReady?.({ getProject, loadProject, focus, registerPattern, removePattern, setRoomCatalogs, setOpeningCatalog, generateObjects, setTool, addWalkthroughPoint, setWalkthroughPoints });
+    onReady?.({ getProject, loadProject, focus, registerPattern, removePattern, setRoomCatalogs, setOpeningCatalog, generateObjects, setTool, addWalkthroughPoint, setWalkthroughPoints, normalizeCoordinates });
     root.addEventListener('keydown', handleKeydown);
 
     return () => {

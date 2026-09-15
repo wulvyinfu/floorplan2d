@@ -475,7 +475,15 @@ interface FloorplanEditorHandle {
     points: readonly WalkthroughPoint[],
     floorId?: string
   ): void;
+  normalizeCoordinates(floorId?: string): Point | null;
 }
+```
+
+坐标归一化会将指定楼层（省略 `floorId` 时为当前楼层）的墙体包围盒中心移动到世界原点 `(0, 0)`，并同步平移家具、楼梯、柱、标注、测量、辅助线、漫游点及背景图等绝对坐标。门窗和壁画使用墙体相对位置，无需单独换算。返回值是实际应用的平移量；没有墙体时返回 `null`。
+
+```tsx
+const offset = editorRef.current?.normalizeCoordinates();
+// 指定楼层：editorRef.current?.normalizeCoordinates(floorId)
 ```
 
 获取当前项目：

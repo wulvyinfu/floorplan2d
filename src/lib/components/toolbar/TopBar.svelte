@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { currentProject, undo, redo, addFloor, removeFloor, setActiveFloor, updateProjectName, loadProject, createDefaultProject, snapEnabled, canvasZoom, panMode, showFurnitureStore, layerVisibility, importFloorIntoCurrentProject } from '$lib/stores/project';
+  import { currentProject, undo, redo, addFloor, removeFloor, setActiveFloor, updateProjectName, loadProject, createDefaultProject, snapEnabled, canvasZoom, panMode, showFurnitureStore, layerVisibility, importFloorIntoCurrentProject, normalizeCoordinates } from '$lib/stores/project';
   import { get } from 'svelte/store';
   import type { Floor, Project } from '$lib/models/types';
   import { exportAsPNG, exportAsJSON, exportAsSVG, exportPDF } from '$lib/utils/export';
@@ -258,6 +258,15 @@
   </button>
 
   <div class="h-5 w-px bg-white/20"></div>
+
+  <button
+    onclick={() => normalizeCoordinates()}
+    class="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors"
+    title="坐标归一化：将当前楼层中心移动到原点"
+    aria-label="坐标归一化"
+  >
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/></svg>
+  </button>
 
   <!-- Snap to grid toggle -->
   <button

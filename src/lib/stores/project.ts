@@ -161,6 +161,75 @@ function mutate(fn: (floor: Floor) => void, description?: string) {
   currentProject.set({ ...p });
 }
 
+/**
+ * Translate every absolute world coordinate on a floor so the wall bounds are
+ * centered on the world origin. Returns the applied translation, or null when
+ * the target floor has no walls.
+ */
+export function normalizeCoordinates(floorId?: string): Point | null {
+  const p = get(currentProject);
+  if (!p) return null;
+  const targetId = floorId ?? p.activeFloorId;
+  const floor = p.floors.find((item) => item.id === targetId);
+  if (!floor || floor.walls.length === 0) return null;
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  const include = (point: Point) => {
+    minX = Math.min(minX, point.x);
+    minY = Math.min(minY, point.y);
+    maxX = Math.max(maxX, point.x);
+    maxY = Math.max(maxY, point.y);
+  };
+  floor.walls.forEach((wall) => {
+    include(wall.start);
+    include(wall.end);
+    if (wall.curvePoint) include(wall.curvePoint);
+  });
+
+  const offset = {
+    x: -(minX + maxX) / 2,
+    y: -(minY + maxY) / 2
+  };
+  if (Math.abs(offset.x) < 1e-9 && Math.abs(offset.y) < 1e-9) return { x: 0, y: 0 };
+
+  snapshot('Normalized coordinates');
+  const movePoint = (point: Point) => {
+    point.x += offset.x;
+    point.y += offset.y;
+  };
+  floor.walls.forEach((wall) => {
+    movePoint(wall.start);
+    movePoint(wall.end);
+    if (wall.curvePoint) movePoint(wall.curvePoint);
+  });
+  floor.furniture.forEach((item) => movePoint(item.position));
+  floor.stairs.forEach((item) => movePoint(item.position));
+  floor.columns.forEach((item) => movePoint(item.position));
+  (floor.walkthroughPoints ?? []).forEach(movePoint);
+  if (floor.backgroundImage) movePoint(floor.backgroundImage.position);
+  floor.measurements.forEach((item) => {
+    item.x1 += offset.x; item.y1 += offset.y;
+    item.x2 += offset.x; item.y2 += offset.y;
+  });
+  floor.annotations.forEach((item) => {
+    item.x1 += offset.x; item.y1 += offset.y;
+    item.x2 += offset.x; item.y2 += offset.y;
+  });
+  floor.textAnnotations.forEach((item) => {
+    item.x += offset.x;
+    item.y += offset.y;
+  });
+  floor.guides.forEach((guide) => {
+    guide.position += guide.orientation === 'vertical' ? offset.x : offset.y;
+  });
+  p.updatedAt = new Date();
+  currentProject.set({ ...p });
+  return offset;
+}
+
 export function addWall(start: Point, end: Point): string {
   const id = uid();
   mutate((f) => {

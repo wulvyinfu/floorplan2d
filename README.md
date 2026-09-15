@@ -366,6 +366,12 @@ interface WallArt {
 
 The default size is `120 × 80cm`, with a `120cm` bottom elevation. `normal` and `anti` represent the left and right sides relative to the wall's start-to-end direction. `src` accepts HTTP(S) URLs and SVG, PNG, JPEG, or WebP data URLs. Local uploads are converted to data URLs and persisted in project JSON (maximum 5MB per image). Remote image servers must allow cross-origin access. Deleting or splitting a wall automatically removes or reattaches related artwork.
 
+#### 坐标归一化 / Coordinate Normalization
+
+顶部工具栏的“坐标归一化”按钮会将当前楼层的墙体包围盒中心移动到世界原点 `(0, 0)`，并同步移动该楼层的全部绝对坐标。React 集成也可通过 `editorRef.current?.normalizeCoordinates(floorId?)` 调用；返回实际平移量 `{ x, y }`，无墙体时返回 `null`。
+
+The Coordinate Normalization toolbar button moves the active floor's wall-bounds center to the world origin `(0, 0)` and translates all absolute coordinates on that floor. React integrations can call `editorRef.current?.normalizeCoordinates(floorId?)`; it returns the applied `{ x, y }` offset, or `null` when no walls exist.
+
 ### 生产构建 / Production Build
 
 ```bash
