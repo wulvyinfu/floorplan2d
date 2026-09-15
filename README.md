@@ -1,8 +1,10 @@
 # floorplan2d
 
-**Free Open Source 2D Floor Plan Editor**
+**免费开源的 2D 户型图编辑器 / Free Open Source 2D Floor Plan Editor**
 
-当前项目由openplan3d进行轻量化的2d项目，能够快速绘制2d平面图并且导出数据，目前部分功能已经被隐藏。目前仅为适配本地项目使用。
+本项目是由 openplan3d 轻量化而来的 2D 编辑器，可快速绘制平面图并导出数据。部分原有功能已隐藏，目前主要用于适配本地项目。
+
+This project is a lightweight 2D editor derived from openplan3d. It supports fast floor-plan drawing and data export. Some original features are hidden, and the package is currently tailored primarily for local project integration.
 
 <!-- <p align="center">
   <img src="plan1_2d.jpg" alt="2D Floor Plan View" width="48%">
@@ -15,50 +17,50 @@
 
 ---
 
-## ✨ Features
+## ✨ 功能 / Features
 
-### 🏗️ Drawing Tools
-- **Walls** — Click-to-place with automatic snapping and angle constraints
-- **Doors & Windows** — Multiple styles (single, double, sliding, pocket, bi-fold, french doors; casement, bay, picture windows)
-- **Stairs** — Straight, L-shaped, and U-shaped with configurable dimensions
-- **Rooms** — Auto-detected from walls with customizable labels and colors
+### 🏗️ 绘图工具 / Drawing Tools
+- **墙体 / Walls** — 点击放置，支持自动吸附和角度约束 / Click-to-place with automatic snapping and angle constraints
+- **门窗 / Doors & Windows** — 支持多种门窗样式 / Multiple door and window styles
+- **楼梯 / Stairs** — 支持直梯、L 形和 U 形楼梯，可配置尺寸 / Straight, L-shaped, and U-shaped stairs with configurable dimensions
+- **房间 / Rooms** — 根据墙体自动识别，可自定义标签和颜色 / Auto-detected from walls with customizable labels and colors
 
-### 🛋️ Furniture Library
-- **140+ items** across categories: living room, bedroom, kitchen, bathroom, dining, office, outdoor, and more
-- Drag-and-drop placement with rotation, resizing, and snapping
-- Full **3D models** rendered in the 3D view
+### 🛋️ 家具库 / Furniture Library
+- **140+ 个物件 / 140+ items**，覆盖客厅、卧室、厨房、浴室、餐厅、办公室和户外等分类 / Across living room, bedroom, kitchen, bathroom, dining, office, outdoor, and more
+- 支持拖放、旋转、缩放和吸附 / Drag-and-drop placement with rotation, resizing, and snapping
+- 可在 3D 视图中渲染完整的 **3D 模型** / Full **3D models** rendered in the 3D view
 
-### 🏠 3D View
-- **Real-time 3D preview** — Toggle with `Tab`
-- **Walkthrough mode** — First-person navigation through your floor plan
-- **Material editor** — Apply textures to walls, floors, and ceilings (wood, tile, marble, carpet, concrete, brick, and more)
-- **Lighting** — Ambient and directional lighting with adjustable intensity
+### 🏠 3D 视图 / 3D View
+- **实时 3D 预览 / Real-time 3D preview** — 使用 `Tab` 切换 / Toggle with `Tab`
+- **漫游模式 / Walkthrough mode** — 以第一人称浏览户型图 / First-person navigation through your floor plan
+- **材质编辑器 / Material editor** — 为墙体、地面和天花板应用木材、瓷砖、大理石、地毯、混凝土、砖等纹理 / Apply textures to walls, floors, and ceilings
+- **灯光 / Lighting** — 可调节强度的环境光与方向光 / Ambient and directional lighting with adjustable intensity
 
-### 📐 Pro Tools
-- **Snap to grid** with configurable grid size
-- **Smart guides** and alignment helpers
-- **Multi-select** with box selection and alignment tools (align left, center, right, top, middle, bottom; distribute evenly)
-- **Layers** — Organize elements across multiple layers with visibility toggles
-- **Annotations** — Text labels with customizable font size and color
-- **Room presets** — Quickly apply standard room dimensions
-- **Undo/Redo** — Full history with grouped operations
-- **Version history** — Auto-saved snapshots you can restore
+### 📐 专业工具 / Pro Tools
+- **网格吸附 / Snap to grid** — 可配置网格尺寸 / Configurable grid size
+- **智能参考线 / Smart guides** — 提供对齐辅助 / Alignment helpers
+- **多选 / Multi-select** — 支持框选、对齐和均匀分布 / Box selection, alignment, and even distribution
+- **图层 / Layers** — 跨多个图层组织元素并切换可见性 / Organize elements across layers with visibility toggles
+- **标注 / Annotations** — 可自定义字号和颜色的文本标签 / Text labels with customizable font size and color
+- **房间预设 / Room presets** — 快速应用标准房间尺寸 / Quickly apply standard room dimensions
+- **撤销与重做 / Undo & Redo** — 支持分组操作的完整历史 / Full history with grouped operations
+- **版本历史 / Version history** — 可恢复自动保存的快照 / Restorable auto-saved snapshots
 
-### 📤 Export
-- **SVG** — Scalable vector graphics
-- **DXF** — AutoCAD-compatible format
-- **PDF** — Print-ready output with title block
-- **PNG** — High-resolution raster image
-- **JSON** — Full project data for backup and sharing
+### 📤 导出 / Export
+- **SVG** — 可缩放矢量图 / Scalable vector graphics
+- **DXF** — AutoCAD 兼容格式 / AutoCAD-compatible format
+- **PDF** — 带标题栏的可打印输出 / Print-ready output with title block
+- **PNG** — 高分辨率位图 / High-resolution raster image
+- **JSON** — 用于备份和共享的完整项目数据 / Full project data for backup and sharing
 
-### 📥 Import
-- **JSON** — Restore saved projects
-- **Apple RoomPlan** — Import room scans from iOS devices
-- **Clipboard images** — Paste reference images directly onto the canvas
+### 📥 导入 / Import
+- **JSON** — 恢复已保存的项目 / Restore saved projects
+- **Apple RoomPlan** — 导入 iOS 设备扫描的房间 / Import room scans from iOS devices
+- **剪贴板图片 / Clipboard images** — 将参考图片直接粘贴到画布 / Paste reference images directly onto the canvas
 
 ---
 
-## 🚀 Getting Started
+## 🚀 快速开始 / Getting Started
 
 ```bash
 # Clone the repository
@@ -72,16 +74,16 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) in your browser.
+在浏览器中打开 [http://localhost:5173](http://localhost:5173)。/ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 
-Install the generated package in a React project:
+在 React 项目中安装构建后的包：/ Install the generated package in a React project:
 
 ```bash
 npm install floorplan2d
 ```
 
-Then render the editor directly in JSX:
+然后在 JSX 中直接渲染编辑器：/ Then render the editor directly in JSX:
 
 ```tsx
 import { useState } from 'react';
@@ -101,9 +103,11 @@ export default function App() {
 }
 ```
 
+`FloorplanEditor` 是 React `forwardRef` 组件。`project` 接收完整的户型图文档，`dataStore` 接收自定义持久化实现，`autoSave` 控制自动持久化，ref 提供 `getProject`、`loadProject` 和 `focus`。该包是仅支持 2D 的 ES 模块，不包含 Three.js 或 3D 查看器。
+
 `FloorplanEditor` is a React `forwardRef` component. `project` accepts a complete floor plan document, `dataStore` accepts a custom persistence implementation, `autoSave` controls automatic persistence, and the ref exposes `getProject`, `loadProject`, and `focus`. The package is a 2D-only ES module and does not include Three.js or the 3D viewer.
 
-#### 自定义模块
+#### 自定义模块 / Custom Modules
 
 ```tsx
 <FloorplanEditor
@@ -120,7 +124,7 @@ export default function App() {
 />
 ```
 
-#### 自定义物件
+#### 自定义物件 / Custom Objects
 
 ```tsx
 const customObjects = [{
@@ -139,7 +143,9 @@ const customObjects = [{
 
 物件目录默认为空，仅显示通过 `customObjects` 添加的自定义物件。自定义物件会随项目 JSON 保存，也可以通过 `ref.current.registerPattern(pattern)` 和 `ref.current.removePattern(id)` 动态添加或移除。`src` 支持 SVG、PNG、JPEG、WebP 的 data URL，以及 HTTP(S) 图片地址。
 
-#### 房间预设与模板
+The object catalog is empty by default and only displays custom objects supplied through `customObjects`. Custom objects are saved in the project JSON and can also be added or removed dynamically with `ref.current.registerPattern(pattern)` and `ref.current.removePattern(id)`. `src` supports SVG, PNG, JPEG, and WebP data URLs, as well as HTTP(S) image URLs.
+
+#### 房间预设与模板 / Room Presets and Templates
 
 ```tsx
 import type { RoomPreset, RoomTemplate } from 'floorplan2d';
@@ -174,7 +180,55 @@ const roomTemplates: RoomTemplate[] = [{
 
 房间预设和模板默认均为空。模板中的 `catalogId` 应引用 `customObjects` 中存在的物件 ID。
 
-#### 根据第三方数据批量生成物件
+Room presets and templates are empty by default. Each `catalogId` in a template must reference an object ID available in `customObjects`.
+
+#### 门窗目录配置 / Opening Catalog Configuration
+
+`openingCatalog` 用于控制“建造”面板中门窗分类及具体类型的可见性。默认值为 `{}`：门、窗分类均显示，并展示所有内置类型。
+
+`openingCatalog` controls the visibility of door and window categories and their individual types in the Build panel. Its default value is `{}`: both categories and all built-in types are visible.
+
+```tsx
+import type { OpeningCatalogConfig } from 'floorplan2d';
+
+const openingCatalog: OpeningCatalogConfig = {};
+
+<FloorplanEditor openingCatalog={openingCatalog} />
+```
+
+使用 `showDoors: false` 或 `showWindows: false` 可隐藏整个门或窗分类：
+
+Set `showDoors: false` or `showWindows: false` to hide the entire door or window category:
+
+```tsx
+<FloorplanEditor
+  openingCatalog={{
+    showDoors: false,
+    showWindows: true
+  }}
+/>
+```
+
+使用 `doorTypes` 和 `windowTypes` 可指定允许显示的类型；未列出的类型会隐藏。传入空数组会隐藏该分类下的所有类型。
+
+Use `doorTypes` and `windowTypes` to specify the types that remain visible; omitted types are hidden. Passing an empty array hides every type in that category.
+
+```tsx
+<FloorplanEditor
+  openingCatalog={{
+    doorTypes: ['single', 'sliding'],
+    windowTypes: ['standard', 'fixed', 'casement']
+  }}
+/>
+```
+
+可用的门类型 / Available door types: `single`, `double`, `sliding`, `french`, `pocket`, `bifold`.
+
+可用的窗类型 / Available window types: `standard`, `fixed`, `casement`, `sliding`, `bay`.
+
+也可以通过 ref 的 `setOpeningCatalog(config)` 在运行时更新配置。/ The configuration can also be updated at runtime through `setOpeningCatalog(config)` on the ref.
+
+#### 根据第三方数据批量生成物件 / Generate Objects from Third-Party Data
 
 ```tsx
 import { useRef } from 'react';
@@ -219,7 +273,11 @@ function addTenCabinets() {
 
 `generateObjects` 会先校验整批数据，再一次性注册图形并创建实例。成功时只产生一次项目更新和一次撤销记录；任意数据无效时抛出 `GenerateObjectsError`，整批数据不会部分写入。返回结果包含每个 `externalId` 对应的编辑器 `objectId`。
 
-#### 物件新增回调
+Define `definition` once and use `instances` to create any number of devices of the same kind. `src` is optional; `shape` accepts `rectangle` or `circle`. Each instance can define different text, color, font size, and offset through `label`. The legacy array format remains supported.
+
+`generateObjects` validates the entire batch before registering the shape and creating instances. A successful batch produces one project update and one undo entry. If any input is invalid, it throws `GenerateObjectsError` without partially writing the batch. The result maps each `externalId` to its editor `objectId`.
+
+#### 物件新增回调 / Object Added Callback
 
 ```tsx
 import type { ObjectAddedEvent } from 'floorplan2d';
@@ -236,11 +294,15 @@ function handleObjectAdded(event: ObjectAddedEvent) {
 
 `onObjectAdded` 在用户点击或拖放物件、房间模板创建物件以及 `generateObjects` 批量创建物件时触发。`source` 为 `editor` 或 `batch`；批量创建 10 个机柜时会触发 10 次，分别返回每个实例。初始项目和 `loadProject()` 中已经存在的物件不会触发。
 
-#### 漫游标点与路线
+`onObjectAdded` fires when users click or drag an object into the plan, when a room template creates objects, and when `generateObjects` creates a batch. `source` is `editor` or `batch`; creating ten cabinets fires ten events, one for each instance. Objects already present in the initial project or in `loadProject()` do not trigger the callback.
+
+#### 漫游标点与路线 / Walkthrough Points and Routes
 
 编辑器的“建造 → 漫游标点”工具支持连续点击画布添加标点，并按照标点顺序自动连线。切换到选择工具后可以拖动或删除标点，中间标点删除后前后节点会自动重新连接。
 
-React 也可以通过 ref 控制：
+The Build → Walkthrough Points tool adds points with consecutive canvas clicks and connects them in array order. Switch to the selection tool to move or delete points; deleting a middle point automatically reconnects its adjacent points.
+
+React 也可以通过 ref 控制：/ React can also control the route through a ref:
 
 ```tsx
 const editorRef = useRef<FloorplanEditorHandle>(null);
@@ -259,7 +321,7 @@ editorRef.current?.setWalkthroughPoints([
 ]);
 ```
 
-监听新增标点：
+监听新增标点：/ Listen for newly added points:
 
 ```tsx
 <FloorplanEditor
@@ -275,7 +337,9 @@ editorRef.current?.setWalkthroughPoints([
 
 路线保存在各楼层的 `walkthroughPoints` 数组中，连线由数组顺序自动生成。`source` 为 `editor` 或 `api`；初始项目与 `loadProject()` 中已有标点不会触发新增回调。
 
-### Production Build
+Routes are stored in each floor's `walkthroughPoints` array, and connections follow the array order. `source` is `editor` or `api`; points already present in the initial project or in `loadProject()` do not trigger the added callback.
+
+### 生产构建 / Production Build
 
 ```bash
 npm run build
@@ -284,54 +348,54 @@ npm run preview
 
 ---
 
-## ⌨️ Keyboard Shortcuts
+## ⌨️ 快捷键 / Keyboard Shortcuts
 
-| Shortcut | Action |
+| 快捷键 / Shortcut | 操作 / Action |
 |---|---|
-| `V` | Select tool |
-| `W` | Wall tool |
-| `D` | Door tool |
-| `T` | Text / annotation tool |
-| `H` | Pan (hand) mode |
-| `R` | Rotate selected furniture |
-| `Delete` / `Backspace` | Delete selected element(s) |
-| `Escape` | Deselect / cancel |
-| `Ctrl+Z` | Undo |
-| `Ctrl+Shift+Z` / `Ctrl+Y` | Redo |
-| `Ctrl+S` | Save project |
+| `V` | 选择工具 / Select tool |
+| `W` | 墙体工具 / Wall tool |
+| `D` | 门工具 / Door tool |
+| `T` | 文本/标注工具 / Text or annotation tool |
+| `H` | 平移（手形）模式 / Pan (hand) mode |
+| `R` | 旋转选中的家具 / Rotate selected furniture |
+| `Delete` / `Backspace` | 删除选中元素 / Delete selected elements |
+| `Escape` | 取消选择或操作 / Deselect or cancel |
+| `Ctrl+Z` | 撤销 / Undo |
+| `Ctrl+Shift+Z` / `Ctrl+Y` | 重做 / Redo |
+| `Ctrl+S` | 保存项目 / Save project |
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ 技术栈 / Tech Stack
 
-- **[SvelteKit](https://svelte.dev)** — Application framework
-- **[Tailwind CSS](https://tailwindcss.com)** — Styling
-- **[TypeScript](https://www.typescriptlang.org)** — Type safety
-- **[jsPDF](https://github.com/parallax/jsPDF)** — PDF generation
-- **[dxf-writer](https://github.com/nicholaschiasson/dxf-writer)** — DXF export
-- **[Firebase](https://firebase.google.com)** — Optional cloud sync
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Here's how to get started:
-
-1. **Fork** the repository
-2. **Create a branch** for your feature: `git checkout -b feature/my-feature`
-3. **Make your changes** and ensure the build passes: `npm run build`
-4. **Submit a pull request** with a clear description of your changes
-
-Please keep PRs focused and include screenshots for UI changes.
+- **[SvelteKit](https://svelte.dev)** — 应用框架 / Application framework
+- **[Tailwind CSS](https://tailwindcss.com)** — 样式 / Styling
+- **[TypeScript](https://www.typescriptlang.org)** — 类型安全 / Type safety
+- **[jsPDF](https://github.com/parallax/jsPDF)** — PDF 生成 / PDF generation
+- **[dxf-writer](https://github.com/nicholaschiasson/dxf-writer)** — DXF 导出 / DXF export
+- **[Firebase](https://firebase.google.com)** — 可选云同步 / Optional cloud sync
 
 ---
 
-## 📄 License
+## 🤝 贡献 / Contributing
 
-This project is licensed under the [MIT License](LICENSE).
+欢迎贡献！请按以下步骤开始：/ Contributions are welcome! Here's how to get started:
+
+1. **派生仓库 / Fork** the repository
+2. **创建功能分支 / Create a branch**: `git checkout -b feature/my-feature`
+3. **完成修改并确保构建通过 / Make changes and ensure the build passes**: `npm run build`
+4. **提交包含清晰说明的拉取请求 / Submit a pull request** with a clear description
+
+请保持 PR 内容聚焦，并为 UI 修改附上截图。/ Keep PRs focused and include screenshots for UI changes.
+
+---
+
+## 📄 许可证 / License
+
+本项目使用 [MIT 许可证](LICENSE)。/ This project is licensed under the [MIT License](LICENSE).
 
 ---
 
 <p align="center">
-  <b>Built with ❤️ for architects, designers, and anyone who needs a floor plan.</b>
+  <b>为建筑师、设计师和所有需要户型图的人而构建。/ Built with ❤️ for architects, designers, and anyone who needs a floor plan.</b>
 </p>

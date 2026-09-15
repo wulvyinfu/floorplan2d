@@ -1,7 +1,7 @@
 <script lang="ts">
   import { selectedTool, placingFurnitureId, placingDoorType, placingWindowType, placingStair, addStair, placingColumn, placingColumnShape, activeFloor, setBackgroundImage, canvasCamX, canvasCamY } from '$lib/stores/project';
   import type { Tool } from '$lib/stores/project';
-  import type { Door, Window as Win } from '$lib/models/types';
+  import type { Door, OpeningCatalogConfig, Window as Win } from '$lib/models/types';
   import { placeRoomTemplate } from '$lib/utils/roomTemplates';
   import type { RoomPreset } from '$lib/utils/roomPresets';
   import type { RoomTemplate } from '$lib/utils/roomTemplates';
@@ -14,9 +14,10 @@
   interface Props {
     roomPresets?: readonly RoomPreset[];
     roomTemplates?: readonly RoomTemplate[];
+    openingCatalog?: OpeningCatalogConfig;
   }
 
-  let { roomPresets = [], roomTemplates = [] }: Props = $props();
+  let { roomPresets = [], roomTemplates = [], openingCatalog = {} }: Props = $props();
 
   // AreaSummaryPanel moved to top bar dialog
   let activeTab = $state<'draw' | 'rooms' | 'objects'>('draw');
@@ -133,6 +134,9 @@
     { type: 'sliding', name: '推拉窗', desc: '180×120cm' },
     { type: 'bay', name: '飘窗', desc: '200×150cm' },
   ];
+
+  let visibleDoors = $derived(openingCatalog.showDoors === false ? [] : doorCatalog.filter((item) => !openingCatalog.doorTypes || openingCatalog.doorTypes.includes(item.type)));
+  let visibleWindows = $derived(openingCatalog.showWindows === false ? [] : windowCatalog.filter((item) => !openingCatalog.windowTypes || openingCatalog.windowTypes.includes(item.type)));
 
   let selectedDoorType = $state<Door['type']>('single');
   let selectedWindowType = $state<Win['type']>('standard');
@@ -469,9 +473,10 @@
 
         {/if}
 
-        <h3 class="text-xs font-semibold text-gray-400 uppercase mt-3 mb-2">门</h3>
+        {#if visibleDoors.length > 0}
+          <h3 class="text-xs font-semibold text-gray-400 uppercase mt-3 mb-2">门</h3>
           <div class="grid grid-cols-2 gap-2 mb-3">
-            {#each doorCatalog.filter((item) => item.type === 'single' || item.type === 'double') as dc}
+            {#each visibleDoors as dc}
               <button
                 class="flex flex-col items-center gap-1 p-2.5 rounded-lg border-2 transition-colors cursor-grab active:cursor-grabbing {currentTool === 'door' && selectedDoorType === dc.type ? 'border-blue-400 bg-blue-50' : 'border-gray-100 hover:border-gray-200'}"
                 onclick={() => setDoorType(dc.type)}
@@ -486,6 +491,27 @@
               </button>
             {/each}
           </div>
+        {/if}
+
+        {#if visibleWindows.length > 0}
+          <h3 class="text-xs font-semibold text-gray-400 uppercase mt-3 mb-2">窗</h3>
+          <div class="grid grid-cols-2 gap-2 mb-3">
+            {#each visibleWindows as wc}
+              <button
+                class="flex flex-col items-center gap-1 p-2.5 rounded-lg border-2 transition-colors cursor-grab active:cursor-grabbing {currentTool === 'window' && selectedWindowType === wc.type ? 'border-blue-400 bg-blue-50' : 'border-gray-100 hover:border-gray-200'}"
+                onclick={() => setWindowType(wc.type)}
+                draggable="true"
+                ondragstart={(e) => { e.dataTransfer?.setData('application/o3d-type', 'window'); e.dataTransfer?.setData('application/o3d-id', wc.type); }}
+              >
+                <div class="w-9 h-9 rounded-lg bg-cyan-50 flex items-center justify-center">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0e7490" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14"/><path d="M12 5v14M3 12h18"/></svg>
+                </div>
+                <span class="text-xs font-medium text-gray-600">{wc.name}</span>
+                <span class="text-[10px] text-gray-400">{wc.desc}</span>
+              </button>
+            {/each}
+          </div>
+        {/if}
       </div>
 
     {:else if activeTab === 'rooms'}

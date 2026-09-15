@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
-  import type { CustomPattern, GenerateObjectsInput, GenerateObjectsResult, ObjectAddedEvent, Point, Project, WalkthroughPoint, WalkthroughPointAddedEvent } from '$lib/models/types';
+  import type { CustomPattern, GenerateObjectsInput, GenerateObjectsResult, ObjectAddedEvent, OpeningCatalogConfig, Point, Project, WalkthroughPoint, WalkthroughPointAddedEvent } from '$lib/models/types';
   import type { RoomPreset } from '$lib/utils/roomPresets';
   import type { RoomTemplate } from '$lib/utils/roomTemplates';
   import type { DataStore } from '$lib/services/datastore';
@@ -28,6 +28,7 @@
     registerPattern(pattern: CustomPattern): void;
     removePattern(id: string): void;
     setRoomCatalogs(presets: readonly RoomPreset[], templates: readonly RoomTemplate[]): void;
+    setOpeningCatalog(config: OpeningCatalogConfig): void;
     generateObjects(input: GenerateObjectsInput): GenerateObjectsResult;
     setTool(tool: Tool): void;
     addWalkthroughPoint(position: Point, name?: string): WalkthroughPoint;
@@ -50,6 +51,7 @@
     customPatterns?: CustomPattern[];
     roomPresets?: readonly RoomPreset[];
     roomTemplates?: readonly RoomTemplate[];
+    openingCatalog?: OpeningCatalogConfig;
   }
 
   let {
@@ -65,7 +67,8 @@
     onModuleTarget,
     customPatterns,
     roomPresets = [],
-    roomTemplates = []
+    roomTemplates = [],
+    openingCatalog = {}
   }: Props = $props();
 
   let root: HTMLDivElement;
@@ -131,6 +134,10 @@
   export function setRoomCatalogs(presets: readonly RoomPreset[], templates: readonly RoomTemplate[]) {
     roomPresets = presets;
     roomTemplates = templates;
+  }
+
+  export function setOpeningCatalog(config: OpeningCatalogConfig) {
+    openingCatalog = config;
   }
 
   export function generateObjects(input: GenerateObjectsInput) {
@@ -239,7 +246,7 @@
       }
     });
 
-    onReady?.({ getProject, loadProject, focus, registerPattern, removePattern, setRoomCatalogs, generateObjects, setTool, addWalkthroughPoint, setWalkthroughPoints });
+    onReady?.({ getProject, loadProject, focus, registerPattern, removePattern, setRoomCatalogs, setOpeningCatalog, generateObjects, setTool, addWalkthroughPoint, setWalkthroughPoints });
     root.addEventListener('keydown', handleKeydown);
 
     return () => {
@@ -260,7 +267,7 @@
     <TopBar {autoSave} />
     <div bind:this={toolbarTarget} data-floorplan-module="toolbar" class="shrink-0 empty:hidden"></div>
     <div class="flex flex-1 min-h-0 overflow-hidden">
-      <BuildPanel {roomPresets} {roomTemplates} />
+      <BuildPanel {roomPresets} {roomTemplates} {openingCatalog} />
       <div bind:this={leftPanelTarget} data-floorplan-module="left-panel" class="h-full shrink-0 overflow-auto empty:hidden"></div>
       <div class="flex-1 min-w-0 relative">
         <FloorPlanCanvas {roomPresets} {roomTemplates} />

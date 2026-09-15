@@ -14,6 +14,9 @@ function publicTypes(): Plugin {
 
 export interface Point { x: number; y: number }
 export interface WalkthroughPoint extends Point { id: string; name?: string }
+export type DoorType = 'single' | 'double' | 'sliding' | 'french' | 'pocket' | 'bifold';
+export type WindowType = 'standard' | 'fixed' | 'casement' | 'sliding' | 'bay';
+export interface OpeningCatalogConfig { showDoors?: boolean; showWindows?: boolean; doorTypes?: readonly DoorType[]; windowTypes?: readonly WindowType[] }
 export type ObjectShape = 'rectangle' | 'circle';
 export interface ObjectLabel { text: string; color?: string; fontSize?: number; offsetX?: number; offsetY?: number }
 export interface FurnitureItem { id: string; catalogId: string; position: Point; rotation: number; scale: { x: number; y: number; z: number }; color?: string; width?: number; depth?: number; height?: number; material?: string; locked?: boolean; label?: ObjectLabel }
@@ -34,10 +37,10 @@ export interface FurniturePlacement { catalogId: string; x: number; y: number; r
 export interface RoomTemplate { name: string; presetId: string; furniture: FurniturePlacement[] }
 export interface Project { id: string; name: string; description?: string; floors: Floor[]; activeFloorId: string; createdAt: Date; updatedAt: Date; customPatterns?: CustomPattern[] }
 export interface DataStore { save(project: Project): Promise<void>; load(id: string): Promise<Project | null>; list(): Promise<{ id: string; name: string; updatedAt: string }[]>; delete(id: string): Promise<void>; duplicate(id: string): Promise<Project | null>; saveThumbnail(id: string, dataUrl: string): void; getThumbnail(id: string): string | null }
-export interface FloorplanEditorHandle { getProject(): Project | null; loadProject(project: Project): void; focus(): void; registerPattern(pattern: CustomPattern): void; removePattern(id: string): void; setRoomCatalogs(presets: readonly RoomPreset[], templates: readonly RoomTemplate[]): void; generateObjects(input: GenerateObjectsInput): GenerateObjectsResult; setTool(tool: Tool): void; addWalkthroughPoint(position: Point, name?: string): WalkthroughPoint; setWalkthroughPoints(points: readonly WalkthroughPoint[], floorId?: string): void }
+export interface FloorplanEditorHandle { getProject(): Project | null; loadProject(project: Project): void; focus(): void; registerPattern(pattern: CustomPattern): void; removePattern(id: string): void; setRoomCatalogs(presets: readonly RoomPreset[], templates: readonly RoomTemplate[]): void; setOpeningCatalog(config: OpeningCatalogConfig): void; generateObjects(input: GenerateObjectsInput): GenerateObjectsResult; setTool(tool: Tool): void; addWalkthroughPoint(position: Point, name?: string): WalkthroughPoint; setWalkthroughPoints(points: readonly WalkthroughPoint[], floorId?: string): void }
 export type FloorplanEditorModulePosition = 'toolbar' | 'leftPanel' | 'rightPanel' | 'canvasOverlay';
 export interface FloorplanEditorModules { toolbar?: ReactNode; leftPanel?: ReactNode; rightPanel?: ReactNode; canvasOverlay?: ReactNode }
-export interface FloorplanEditorProps { project?: Project; dataStore?: DataStore; autoSave?: boolean; height?: CSSProperties['height']; className?: string; style?: CSSProperties; modules?: FloorplanEditorModules; customObjects?: CustomPattern[]; customPatterns?: CustomPattern[]; roomPresets?: readonly RoomPreset[]; roomTemplates?: readonly RoomTemplate[]; onProjectChange?: (project: Project) => void; onObjectAdded?: (event: ObjectAddedEvent) => void; onWalkthroughPointAdded?: (event: WalkthroughPointAddedEvent) => void; onReady?: (handle: FloorplanEditorHandle) => void }
+export interface FloorplanEditorProps { project?: Project; dataStore?: DataStore; autoSave?: boolean; height?: CSSProperties['height']; className?: string; style?: CSSProperties; modules?: FloorplanEditorModules; customObjects?: CustomPattern[]; customPatterns?: CustomPattern[]; roomPresets?: readonly RoomPreset[]; roomTemplates?: readonly RoomTemplate[]; openingCatalog?: OpeningCatalogConfig; onProjectChange?: (project: Project) => void; onObjectAdded?: (event: ObjectAddedEvent) => void; onWalkthroughPointAdded?: (event: WalkthroughPointAddedEvent) => void; onReady?: (handle: FloorplanEditorHandle) => void }
 export const FloorplanEditor: ForwardRefExoticComponent<FloorplanEditorProps & RefAttributes<FloorplanEditorHandle>>;
 export function createDefaultFloor(level?: number): Floor;
 export function createDefaultProject(name?: string): Project;

@@ -6,3 +6,5 @@ export { localStore } from './services/datastore';
 export type { DataStore } from './services/datastore';
 export type { FloorplanEditorHandle } from './components/editor/FloorplanEditor.svelte';
 export type * from './models/types';
+export type { RoomPreset } from './utils/roomPresets';
+export type { FurniturePlacement, RoomTemplate } from './utils/roomTemplates';

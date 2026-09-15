@@ -640,6 +640,7 @@ export default function App() {
       customObjects={customObjects}
       roomPresets={roomPresets}
       roomTemplates={roomTemplates}
+      openingCatalog={{ showDoors: true, showWindows: true }}
       autoSave={false}
       height="100vh"
       onProjectChange={setProject}
@@ -656,7 +657,7 @@ export default function App() {
 - 坐标和尺寸统一使用厘米。
 - 旋转角度使用度数。
 - `customObjects`、房间预设和房间模板默认均为空。
-- 建造模块保留选择、墙体、漫游标点、单开门和双开门。
+- 建造模块默认展示全部 6 种门和 5 种窗，可通过 `openingCatalog` 隐藏整个分类或限制具体类型。
 - 使用 ref 方法前应确保组件已经挂载，可通过 `onReady` 获取就绪通知。
 - 不建议同时使用 `customObjects` 受控属性和 `registerPattern()` 修改同一物件 ID。
 - `loadProject()` 不会触发物件或漫游标点的新增回调。
@@ -674,6 +675,7 @@ export default function App() {
 | `customObjects` | `CustomPattern[]` | `[]` | 外部物件目录 |
 | `roomPresets` | `RoomPreset[]` | `[]` | 外部房间预设 |
 | `roomTemplates` | `RoomTemplate[]` | `[]` | 外部房间模板 |
+| `openingCatalog` | `OpeningCatalogConfig` | `{}` | 控制门窗分类及具体预设是否展示 |
 | `modules` | `FloorplanEditorModules` | 无 | React 扩展模块 |
 | `onProjectChange` | `(project) => void` | 无 | 项目变化回调 |
 | `onObjectAdded` | `(event) => void` | 无 | 物件新增回调 |

@@ -7,7 +7,7 @@ import { createDefaultFloor, createDefaultProject } from './stores/project';
 import { localStore } from './services/datastore';
 import type { CSSProperties, ReactNode } from 'react';
 import { GenerateObjectsError } from './models/types';
-import type { CustomPattern, GenerateObjectsInput, GenerateObjectsResult, ObjectAddedEvent, Point, Project, WalkthroughPoint, WalkthroughPointAddedEvent } from './models/types';
+import type { CustomPattern, GenerateObjectsInput, GenerateObjectsResult, ObjectAddedEvent, OpeningCatalogConfig, Point, Project, WalkthroughPoint, WalkthroughPointAddedEvent } from './models/types';
 import type { Tool } from './stores/project';
 import type { RoomPreset } from './utils/roomPresets';
 import type { RoomTemplate } from './utils/roomTemplates';
@@ -20,6 +20,7 @@ export interface FloorplanEditorHandle {
   registerPattern(pattern: CustomPattern): void;
   removePattern(id: string): void;
   setRoomCatalogs(presets: readonly RoomPreset[], templates: readonly RoomTemplate[]): void;
+  setOpeningCatalog(config: OpeningCatalogConfig): void;
   generateObjects(input: GenerateObjectsInput): GenerateObjectsResult;
   setTool(tool: Tool): void;
   addWalkthroughPoint(position: Point, name?: string): WalkthroughPoint;
@@ -47,6 +48,7 @@ export interface FloorplanEditorProps {
   customObjects?: CustomPattern[];
   roomPresets?: readonly RoomPreset[];
   roomTemplates?: readonly RoomTemplate[];
+  openingCatalog?: OpeningCatalogConfig;
   onProjectChange?: (project: Project) => void;
   onObjectAdded?: (event: ObjectAddedEvent) => void;
   onWalkthroughPointAdded?: (event: WalkthroughPointAddedEvent) => void;
@@ -55,6 +57,7 @@ export interface FloorplanEditorProps {
 
 const EMPTY_ROOM_PRESETS: readonly RoomPreset[] = [];
 const EMPTY_ROOM_TEMPLATES: readonly RoomTemplate[] = [];
+const EMPTY_OPENING_CATALOG: OpeningCatalogConfig = {};
 
 export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditorProps>(function FloorplanEditor(
   {
@@ -69,6 +72,7 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
     customObjects,
     roomPresets = EMPTY_ROOM_PRESETS,
     roomTemplates = EMPTY_ROOM_TEMPLATES,
+    openingCatalog = EMPTY_OPENING_CATALOG,
     onProjectChange,
     onObjectAdded,
     onWalkthroughPointAdded,
@@ -95,6 +99,7 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
     registerPattern: (pattern) => handleRef.current?.registerPattern(pattern),
     removePattern: (id) => handleRef.current?.removePattern(id),
     setRoomCatalogs: (presets, templates) => handleRef.current?.setRoomCatalogs(presets, templates),
+    setOpeningCatalog: (config) => handleRef.current?.setOpeningCatalog(config),
     generateObjects: (items) => {
       if (!handleRef.current) throw new GenerateObjectsError(['编辑器尚未初始化，请在 onReady 后调用']);
       return handleRef.current.generateObjects(items);
@@ -121,6 +126,7 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
         customPatterns: patternsRef.current,
         roomPresets,
         roomTemplates,
+        openingCatalog,
         onProjectChange(nextProject: Project) {
           callbacksRef.current.onProjectChange?.(nextProject);
         },
@@ -171,6 +177,10 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
   useEffect(() => {
     handleRef.current?.setRoomCatalogs(roomPresets, roomTemplates);
   }, [roomPresets, roomTemplates]);
+
+  useEffect(() => {
+    handleRef.current?.setOpeningCatalog(openingCatalog);
+  }, [openingCatalog]);
 
   const positions: FloorplanEditorModulePosition[] = ['toolbar', 'leftPanel', 'rightPanel', 'canvasOverlay'];
   const portals = positions.flatMap((position) => {

@@ -58,6 +58,13 @@ export interface Window {
   type: 'standard' | 'fixed' | 'casement' | 'sliding' | 'bay';
 }
 
+export interface OpeningCatalogConfig {
+  showDoors?: boolean;
+  showWindows?: boolean;
+  doorTypes?: readonly Door['type'][];
+  windowTypes?: readonly Window['type'][];
+}
+
 export interface FurnitureItem {
   id: string;
   catalogId: string;
