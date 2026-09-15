@@ -406,6 +406,26 @@ const route = activeFloor?.walkthroughPoints ?? [];
 
 连线不单独保存，而是根据数组顺序生成。删除中间标点后，前后标点自动重新连接。
 
+### 壁画数据
+
+壁画通过编辑器中的“建造 → 壁画”挂载到墙体，并保存在楼层的 `wallArt` 数组中：
+
+```ts
+interface WallArt {
+  id: string;
+  wallId: string;
+  position: number;
+  width: number;
+  height: number;
+  bottomHeight: number;
+  side: 'normal' | 'anti';
+  color: string;
+  src?: string;
+}
+```
+
+`position` 是沿墙体的 `0-1` 参数。`side` 可在属性面板中切换，用于指定壁画贴合墙体的正面或背面。`src` 可使用 HTTP(S) 图片地址，或 SVG、PNG、JPEG、WebP data URL。本地上传的图片会转换为 data URL（单张最大 5MB），并随项目 JSON 持久化；远程图片服务器需要允许跨域访问。壁画支持沿墙拖动、复制、删除以及清除图片。
+
 ## 10. 自定义 React 模块
 
 可以向编辑器的四个区域注入 React 节点：
@@ -658,6 +678,7 @@ export default function App() {
 - 旋转角度使用度数。
 - `customObjects`、房间预设和房间模板默认均为空。
 - 建造模块默认展示全部 6 种门和 5 种窗，可通过 `openingCatalog` 隐藏整个分类或限制具体类型。
+- 壁画保存在 `Floor.wallArt` 中，旧项目缺少该字段时按空数组处理。
 - 使用 ref 方法前应确保组件已经挂载，可通过 `onReady` 获取就绪通知。
 - 不建议同时使用 `customObjects` 受控属性和 `registerPattern()` 修改同一物件 ID。
 - `loadProject()` 不会触发物件或漫游标点的新增回调。

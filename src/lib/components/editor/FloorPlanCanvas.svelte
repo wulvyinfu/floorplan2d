@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { activeFloor, selectedTool, selectedElementId, selectedElementIds, selectedRoomId, addWall, addDoor, addWindow, updateWall, moveWallEndpoint, updateDoor, updateWindow, addFurniture, moveFurniture, commitFurnitureMove, rotateFurniture, setFurnitureRotation, scaleFurniture, removeElement, placingFurnitureId, placingRotation, placingDoorType, placingWindowType, detectedRoomsStore, duplicateDoor, duplicateWindow, duplicateFurniture, duplicateWall, moveWallParallel, splitWall, snapEnabled, placingStair, addStair, moveStair, updateStair, placingColumn, placingColumnShape, addColumn, moveColumn, updateColumn, calibrationMode, calibrationPoints, updateBackgroundImage, setBackgroundImage, canvasZoom, canvasCamX, canvasCamY, panMode, showFurnitureStore, addGuide, moveGuide, removeGuide, beginUndoGroup, endUndoGroup, layerVisibility, updateRoom, addMeasurement, removeMeasurement, addAnnotation, removeAnnotation, updateAnnotation, addTextAnnotation, removeTextAnnotation, updateTextAnnotation, moveTextAnnotation, toggleFurnitureLock, createGroup, ungroupElements, findGroupForElement, addWalkthroughPoint, moveWalkthroughPoint } from '$lib/stores/project';
-  import type { Point, Wall, Door, Window as Win, FurnitureItem, Stair, Column, GuideLine, Measurement, Annotation, TextAnnotation } from '$lib/models/types';
+  import { activeFloor, selectedTool, selectedElementId, selectedElementIds, selectedRoomId, addWall, addDoor, addWindow, addWallArt, updateWall, moveWallEndpoint, updateDoor, updateWindow, updateWallArt, addFurniture, moveFurniture, commitFurnitureMove, rotateFurniture, setFurnitureRotation, scaleFurniture, removeElement, placingFurnitureId, placingRotation, placingDoorType, placingWindowType, detectedRoomsStore, duplicateDoor, duplicateWindow, duplicateWallArt, duplicateFurniture, duplicateWall, moveWallParallel, splitWall, snapEnabled, placingStair, addStair, moveStair, updateStair, placingColumn, placingColumnShape, addColumn, moveColumn, updateColumn, calibrationMode, calibrationPoints, updateBackgroundImage, setBackgroundImage, canvasZoom, canvasCamX, canvasCamY, panMode, showFurnitureStore, addGuide, moveGuide, removeGuide, beginUndoGroup, endUndoGroup, layerVisibility, updateRoom, addMeasurement, removeMeasurement, addAnnotation, removeAnnotation, updateAnnotation, addTextAnnotation, removeTextAnnotation, updateTextAnnotation, moveTextAnnotation, toggleFurnitureLock, createGroup, ungroupElements, findGroupForElement, addWalkthroughPoint, moveWalkthroughPoint } from '$lib/stores/project';
+  import type { Point, Wall, Door, Window as Win, WallArt, FurnitureItem, Stair, Column, GuideLine, Measurement, Annotation, TextAnnotation } from '$lib/models/types';
   import type { Floor, Room } from '$lib/models/types';
   import { detectRooms, getRoomPolygon, roomCentroid } from '$lib/utils/roomDetection';
   import { getMaterial } from '$lib/utils/materials';
@@ -19,8 +19,8 @@
   import { projectSettings, formatLength, formatArea } from '$lib/stores/settings';
   import type { ProjectSettings } from '$lib/stores/settings';
   import type { CanvasState } from '$lib/utils/canvasInteraction';
-  import { drawWall as _drawWall, drawDoorOnWall as _drawDoorOnWall, drawWindowOnWall as _drawWindowOnWall, drawDoorDistanceDimensions as _drawDoorDistanceDimensions, drawWindowDistanceDimensions as _drawWindowDistanceDimensions, drawFurnitureItem, drawStair as _drawStair, drawColumn as _drawColumn, drawGuides as _drawGuides, drawPersistedMeasurements as _drawPersistedMeasurements, drawTextAnnotations as _drawTextAnnotations, drawAnnotation as _drawAnnotation, drawAnnotations as _drawAnnotations, drawRooms as _drawRooms, drawWallJoints as _drawWallJoints, drawSnapPoints as _drawSnapPoints, drawMinimap as _drawMinimap, drawWalkthroughPath } from '$lib/utils/canvasRenderer';
-  import { pointInPolygon, positionOnWall, findWallAt as _findWallAt, findHandleAt as _findHandleAt, findFurnitureAt as _findFurnitureAt, findColumnAt as _findColumnAt, findStairAt as _findStairAt, findDoorAt as _findDoorAt, findWindowAt as _findWindowAt, findRoomAt as _findRoomAt, hitTestMeasurement as _hitTestMeasurement, hitTestAnnotation as _hitTestAnnotation, hitTestTextAnnotation as _hitTestTextAnnotation, findWalkthroughPointAt } from '$lib/utils/hitTesting';
+  import { drawWall as _drawWall, drawDoorOnWall as _drawDoorOnWall, drawWindowOnWall as _drawWindowOnWall, drawWallArt as _drawWallArt, drawDoorDistanceDimensions as _drawDoorDistanceDimensions, drawWindowDistanceDimensions as _drawWindowDistanceDimensions, drawFurnitureItem, drawStair as _drawStair, drawColumn as _drawColumn, drawGuides as _drawGuides, drawPersistedMeasurements as _drawPersistedMeasurements, drawTextAnnotations as _drawTextAnnotations, drawAnnotation as _drawAnnotation, drawAnnotations as _drawAnnotations, drawRooms as _drawRooms, drawWallJoints as _drawWallJoints, drawSnapPoints as _drawSnapPoints, drawMinimap as _drawMinimap, drawWalkthroughPath } from '$lib/utils/canvasRenderer';
+  import { pointInPolygon, positionOnWall, findWallAt as _findWallAt, findHandleAt as _findHandleAt, findFurnitureAt as _findFurnitureAt, findColumnAt as _findColumnAt, findStairAt as _findStairAt, findDoorAt as _findDoorAt, findWindowAt as _findWindowAt, findWallArtAt as _findWallArtAt, findRoomAt as _findRoomAt, hitTestMeasurement as _hitTestMeasurement, hitTestAnnotation as _hitTestAnnotation, hitTestTextAnnotation as _hitTestTextAnnotation, findWalkthroughPointAt } from '$lib/utils/hitTesting';
 
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D;
@@ -68,6 +68,7 @@
   let dragWasWallSnapped: boolean = false;
   let draggingDoorId: string | null = $state(null);
   let draggingWindowId: string | null = $state(null);
+  let draggingWallArtId: string | null = $state(null);
 
   // Guide lines
   let selectedGuideId: string | null = $state(null);
@@ -188,7 +189,7 @@
   let wallSnapInfo: { wallId: string; side: 'normal' | 'anti'; wallAngle: number } | null = $state(null);
 
   // Door/window placement preview state
-  let placementPreview: { wallId: string; position: number; type: 'door' | 'window' } | null = $state(null);
+  let placementPreview: { wallId: string; position: number; type: 'door' | 'window' | 'wall-art' } | null = $state(null);
 
   // Marquee (drag-to-select) state
   let marqueeStart: Point | null = $state(null);
@@ -199,7 +200,7 @@
   let draggingMultiSelect: { startMousePos: Point; origPositions: Map<string, { start?: Point; end?: Point; position?: Point }> } | null = $state(null);
 
   // Clipboard for copy/paste (Ctrl+C / Ctrl+V)
-  let clipboard: { items: Array<{ type: 'furniture' | 'door' | 'window'; data: any }> } | null = $state(null);
+  let clipboard: { items: Array<{ type: 'furniture' | 'door' | 'window' | 'wall-art'; data: any }> } | null = $state(null);
 
   // Context menu state
   let ctxMenuVisible = $state(false);
@@ -513,6 +514,10 @@
     _drawWindowOnWall(getCS(), wall, win);
   }
 
+  function drawWallArt(wall: Wall, item: WallArt, selected: boolean) {
+    _drawWallArt(getCS(), wall, item, selected);
+  }
+
   function drawFurniture(item: FurnitureItem, selected: boolean) {
     drawFurnitureItem(getCS(), item, selected);
   }
@@ -572,12 +577,26 @@
     const ux = tan.x, uy = tan.y;
     const nx = -uy, ny = ux;
     const isDoor = placementPreview.type === 'door';
+    const isWallArt = placementPreview.type === 'wall-art';
     const itemWidth = isDoor ? 90 : 120;
     const halfW = (itemWidth / 2) * zoom;
     const thickness = Math.max(wall.thickness * zoom, 4);
 
     ctx.save();
     ctx.globalAlpha = 0.5;
+
+    if (isWallArt) {
+      const sideOffset = wall.thickness * zoom / 2 + 6;
+      ctx.translate(s.x + nx * sideOffset, s.y + ny * sideOffset);
+      ctx.rotate(Math.atan2(uy, ux));
+      ctx.fillStyle = '#fef3c7';
+      ctx.strokeStyle = '#b45309';
+      ctx.lineWidth = 2;
+      ctx.fillRect(-halfW, -4, halfW * 2, 8);
+      ctx.strokeRect(-halfW, -4, halfW * 2, 8);
+      ctx.restore();
+      return;
+    }
 
     ctx.fillStyle = '#fafafa';
     const gux = ux * halfW, guy = uy * halfW;
@@ -1100,7 +1119,7 @@
     const floor = currentFloor;
     if (!floor) { requestAnimationFrame(draw); return; }
     // Mark dirty whenever active interactions are happening (wall drawing, dragging, etc.)
-    if (wallStart || draggingFurnitureId || draggingWalkthroughPointId || draggingDoorId || draggingWindowId || draggingStairId ||
+    if (wallStart || draggingFurnitureId || draggingWalkthroughPointId || draggingDoorId || draggingWindowId || draggingWallArtId || draggingStairId ||
         draggingColumnId || draggingWallEndpoint || draggingWallParallel || draggingCurveHandle ||
         draggingHandle || draggingMultiSelect || draggingRoomId || draggingRoomLabelId ||
         draggingTextAnnotationId || draggingGuideId || measuring || annotating ||
@@ -1173,6 +1192,11 @@
           if (showDimensions && isSelected(win.id)) drawWindowDistanceDimensions(wall, win);
         }
       }
+    }
+
+    for (const item of floor.wallArt ?? []) {
+      const wall = floor.walls.find((candidate) => candidate.id === item.wallId);
+      if (wall) drawWallArt(wall, item, isSelected(item.id));
     }
 
     // Furniture
@@ -1889,6 +1913,10 @@
       const w = currentFloor.walls.find(wl => wl.id === win.wallId);
       if (w) { const pt = wallPointAt(w, win.position); expand(pt.x, pt.y); }
     }
+    for (const item of currentFloor.wallArt ?? []) {
+      const wall = currentFloor.walls.find((candidate) => candidate.id === item.wallId);
+      if (wall) { const point = wallPointAt(wall, item.position); expand(point.x, point.y); }
+    }
     // Stairs
     if (currentFloor.stairs) {
       for (const st of currentFloor.stairs) {
@@ -1954,6 +1982,11 @@
   function findWindowAt(p: Point): Win | null {
     if (!currentFloor) return null;
     return _findWindowAt(p, currentFloor.windows, currentFloor.walls, zoom);
+  }
+
+  function findWallArtAt(p: Point): WallArt | null {
+    if (!currentFloor) return null;
+    return _findWallArtAt(p, currentFloor.wallArt, currentFloor.walls, zoom);
   }
 
   function findRoomLabelAt(p: Point): Room | null {
@@ -2321,6 +2354,13 @@
         return;
       }
 
+      const wallArt = findWallArtAt(wp);
+      if (wallArt) {
+        selectElement(wallArt.id, e.shiftKey);
+        if (!e.shiftKey) draggingWallArtId = wallArt.id;
+        return;
+      }
+
       // Check doors/windows first (they sit on walls, so check before walls)
       const door = findDoorAt(wp);
       if (door) {
@@ -2418,6 +2458,13 @@
       const wall = findWallAt(wp);
       if (wall) {
         addWindow(wall.id, positionOnWall(wp, wall), currentWindowType);
+        selectedTool.set('select');
+      }
+    } else if (tool === 'wall-art') {
+      const wall = findWallAt(wp);
+      if (wall) {
+        const id = addWallArt(wall.id, positionOnWall(wp, wall));
+        selectedElementId.set(id);
         selectedTool.set('select');
       }
     }
@@ -2753,11 +2800,16 @@
         }
       }
     }
+    if (draggingWallArtId && currentFloor) {
+      const item = currentFloor.wallArt?.find((candidate) => candidate.id === draggingWallArtId);
+      const wall = item ? currentFloor.walls.find((candidate) => candidate.id === item.wallId) : null;
+      if (item && wall) updateWallArt(item.id, { position: positionOnWall(mousePos, wall) });
+    }
     // Door/window placement preview
-    if ((currentTool === 'door' || currentTool === 'window') && currentFloor) {
+    if ((currentTool === 'door' || currentTool === 'window' || currentTool === 'wall-art') && currentFloor) {
       const wall = findWallAt(mousePos);
       if (wall) {
-        placementPreview = { wallId: wall.id, position: positionOnWall(mousePos, wall), type: currentTool as 'door' | 'window' };
+        placementPreview = { wallId: wall.id, position: positionOnWall(mousePos, wall), type: currentTool as 'door' | 'window' | 'wall-art' };
       } else {
         placementPreview = null;
       }
@@ -2828,6 +2880,10 @@
             if (ptInRect({ x: cx, y: cy })) ids.add(win.id);
           }
         }
+        for (const item of currentFloor.wallArt ?? []) {
+          const wall = currentFloor.walls.find((candidate) => candidate.id === item.wallId);
+          if (wall && ptInRect(wallPointAt(wall, item.position))) ids.add(item.id);
+        }
         // Furniture: center inside
         for (const fi of currentFloor.furniture) {
           if (ptInRect(fi.position)) ids.add(fi.id);
@@ -2882,6 +2938,7 @@
     draggingColumnId = null;
     draggingDoorId = null;
     draggingWindowId = null;
+    draggingWallArtId = null;
     draggingHandle = null;
     draggingWallEndpoint = null;
     draggingConnectedEndpoints = [];
@@ -2994,6 +3051,7 @@
         for (const f of currentFloor.furniture) allIds.add(f.id);
         for (const d of currentFloor.doors) allIds.add(d.id);
         for (const w of currentFloor.windows) allIds.add(w.id);
+        for (const item of currentFloor.wallArt ?? []) allIds.add(item.id);
         if (currentFloor.stairs) for (const s of currentFloor.stairs) allIds.add(s.id);
         if (currentFloor.columns) for (const c of currentFloor.columns) allIds.add(c.id);
         selectedElementIds.set(allIds);
@@ -3046,7 +3104,7 @@
     // Copy (Ctrl+C / Cmd+C)
     if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey) {
       if (currentFloor) {
-        const items: Array<{ type: 'furniture' | 'door' | 'window'; data: any }> = [];
+        const items: Array<{ type: 'furniture' | 'door' | 'window' | 'wall-art'; data: any }> = [];
         const idsToCheck = currentSelectedIds.size > 0 ? currentSelectedIds : (currentSelectedId ? new Set([currentSelectedId]) : new Set<string>());
         for (const id of idsToCheck) {
           const fi = currentFloor.furniture.find(f => f.id === id);
@@ -3055,6 +3113,8 @@
           if (door) { items.push({ type: 'door', data: { ...door } }); continue; }
           const win = currentFloor.windows.find(w => w.id === id);
           if (win) { items.push({ type: 'window', data: { ...win } }); continue; }
+          const wallArt = currentFloor.wallArt?.find(item => item.id === id);
+          if (wallArt) { items.push({ type: 'wall-art', data: { ...wallArt } }); continue; }
         }
         if (items.length > 0) {
           clipboard = { items };
@@ -3072,7 +3132,7 @@
         const newIds: string[] = [];
         // We need to duplicate each clipboard item by its stored ID
         // For successive pastes, update clipboard to point to the new IDs
-        const newItems: Array<{ type: 'furniture' | 'door' | 'window'; data: any }> = [];
+        const newItems: Array<{ type: 'furniture' | 'door' | 'window' | 'wall-art'; data: any }> = [];
         for (const item of clipboard.items) {
           let newId: string | null = null;
           if (item.type === 'furniture') {
@@ -3081,6 +3141,8 @@
             newId = duplicateDoor(item.data.id);
           } else if (item.type === 'window') {
             newId = duplicateWindow(item.data.id);
+          } else if (item.type === 'wall-art') {
+            newId = duplicateWallArt(item.data.id);
           }
           if (newId) {
             newIds.push(newId);
@@ -3089,7 +3151,9 @@
               ? currentFloor.furniture.find(f => f.id === newId)
               : item.type === 'door'
               ? currentFloor.doors.find(d => d.id === newId)
-              : currentFloor.windows.find(w => w.id === newId);
+              : item.type === 'window'
+              ? currentFloor.windows.find(w => w.id === newId)
+              : currentFloor.wallArt?.find(wallArt => wallArt.id === newId);
             newItems.push({ type: item.type, data: newData ? { ...newData } : { ...item.data, id: newId } });
           }
         }
@@ -3432,6 +3496,7 @@
           currentFloor.furniture.forEach(f => allIds.add(f.id));
           currentFloor.doors.forEach(d => allIds.add(d.id));
           currentFloor.windows.forEach(w => allIds.add(w.id));
+          currentFloor.wallArt?.forEach(item => allIds.add(item.id));
           if (currentFloor.stairs) currentFloor.stairs.forEach(s => allIds.add(s.id));
           if (currentFloor.columns) currentFloor.columns.forEach(c => allIds.add(c.id));
           selectedElementIds.set(allIds);
@@ -3625,6 +3690,9 @@
       {/if}
       {#if currentFloor.windows.length > 0}
         <span>{currentFloor.windows.length} 扇窗</span>
+      {/if}
+      {#if (currentFloor.wallArt?.length ?? 0) > 0}
+        <span>{currentFloor.wallArt?.length} 幅壁画</span>
       {/if}
       {#if currentFloor.furniture.length > 0}
         <span>{currentFloor.furniture.length} 件家具</span>

@@ -3,7 +3,7 @@
  * All functions are pure — they take canvas context + data and render.
  * Extracted from FloorPlanCanvas.svelte.
  */
-import type { Point, Wall, Door, Window as Win, FurnitureItem, Stair, Column, Floor, Annotation, WalkthroughPoint } from '$lib/models/types';
+import type { Point, Wall, Door, Window as Win, WallArt, FurnitureItem, Stair, Column, Floor, Annotation, WalkthroughPoint } from '$lib/models/types';
 import type { Room } from '$lib/models/types';
 import type { CanvasState } from '$lib/utils/canvasInteraction';
 import type { ProjectSettings } from '$lib/stores/settings';
@@ -14,15 +14,22 @@ import { getRoomPolygon, roomCentroid } from '$lib/utils/roomDetection';
 import { getWallTextureCanvas, getFloorTextureCanvas } from '$lib/utils/textureGenerator';
 
 const patternImages = new Map<string, HTMLImageElement>();
+const failedPatternImages = new Set<string>();
 
 function getPatternImage(src: string): HTMLImageElement | null {
   if (typeof Image === 'undefined') return null;
+  if (failedPatternImages.has(src)) return null;
   const cached = patternImages.get(src);
   if (cached) return cached;
   const image = new Image();
   image.crossOrigin = 'anonymous';
-  image.src = src;
   image.onload = () => window.dispatchEvent(new CustomEvent('floorplan-pattern-loaded'));
+  image.onerror = () => {
+    patternImages.delete(src);
+    failedPatternImages.add(src);
+    window.dispatchEvent(new CustomEvent('floorplan-pattern-loaded'));
+  };
+  image.src = src;
   patternImages.set(src, image);
   return image;
 }
@@ -125,6 +132,66 @@ export function drawWalkthroughPath(cs: CanvasState, points: readonly Walkthroug
     }
   });
   ctx.restore();
+}
+
+export function wallArtCenter(wall: Wall, item: WallArt): Point {
+  const point = wallPointAt(wall, item.position);
+  const tangent = wallTangentAt(wall, item.position);
+  const sign = item.side === 'anti' ? -1 : 1;
+  const offset = wall.thickness / 2 + 4;
+  return { x: point.x - tangent.y * offset * sign, y: point.y + tangent.x * offset * sign };
+}
+
+export function drawWallArt(cs: CanvasState, wall: Wall, item: WallArt, selected: boolean): void {
+  const center = wallArtCenter(wall, item);
+  const tangent = wallTangentAt(wall, item.position);
+  const screen = wts(cs, center.x, center.y);
+  const width = item.width * cs.zoom;
+  const depth = Math.max(18, Math.min(36, item.height * cs.zoom * 0.3));
+  const angle = Math.atan2(tangent.y, tangent.x);
+  cs.ctx.save();
+  cs.ctx.translate(screen.x, screen.y);
+  cs.ctx.rotate(angle);
+  cs.ctx.fillStyle = '#fef3c7';
+  cs.ctx.strokeStyle = item.color;
+  cs.ctx.lineWidth = selected ? 3 : 2;
+  cs.ctx.fillRect(-width / 2, -depth / 2, width, depth);
+  const image = item.src ? getPatternImage(item.src) : null;
+  if (image?.complete && image.naturalWidth > 0) {
+    const imageRatio = image.naturalWidth / image.naturalHeight;
+    const frameRatio = width / depth;
+    let sourceX = 0;
+    let sourceY = 0;
+    let sourceWidth = image.naturalWidth;
+    let sourceHeight = image.naturalHeight;
+    if (imageRatio > frameRatio) {
+      sourceWidth = image.naturalHeight * frameRatio;
+      sourceX = (image.naturalWidth - sourceWidth) / 2;
+    } else {
+      sourceHeight = image.naturalWidth / frameRatio;
+      sourceY = (image.naturalHeight - sourceHeight) / 2;
+    }
+    cs.ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, -width / 2, -depth / 2, width, depth);
+  }
+  cs.ctx.strokeRect(-width / 2, -depth / 2, width, depth);
+  if (!image?.complete || image.naturalWidth === 0) {
+    cs.ctx.beginPath();
+    cs.ctx.moveTo(-width / 2 + 5, depth / 2 - 2);
+    cs.ctx.lineTo(-width / 6, -depth / 2 + 2);
+    cs.ctx.lineTo(width / 8, depth / 2 - 2);
+    cs.ctx.lineTo(width / 3, -depth / 2 + 2);
+    cs.ctx.lineTo(width / 2 - 5, depth / 2 - 2);
+    cs.ctx.strokeStyle = item.color;
+    cs.ctx.lineWidth = 1;
+    cs.ctx.stroke();
+  }
+  if (selected) {
+    cs.ctx.strokeStyle = '#3b82f6';
+    cs.ctx.lineWidth = 1.5;
+    cs.ctx.setLineDash([4, 3]);
+    cs.ctx.strokeRect(-width / 2 - 4, -depth / 2 - 4, width + 8, depth + 8);
+  }
+  cs.ctx.restore();
 }
 
 // ── Grid ─────────────────────────────────────────────────────────────

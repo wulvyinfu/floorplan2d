@@ -1,6 +1,6 @@
 import { writable, derived, get } from 'svelte/store';
 import { GenerateObjectsError } from '$lib/models/types';
-import type { Project, Floor, Wall, Door, Window as Win, FurnitureItem, Point, Stair, Column, BackgroundImage, GuideLine, ElementGroup, CustomPattern, ExternalObjectInput, GenerateObjectsInput, GenerateObjectsResult, WalkthroughPoint } from '$lib/models/types';
+import type { Project, Floor, Wall, Door, Window as Win, WallArt, FurnitureItem, Point, Stair, Column, BackgroundImage, GuideLine, ElementGroup, CustomPattern, ExternalObjectInput, GenerateObjectsInput, GenerateObjectsResult, WalkthroughPoint } from '$lib/models/types';
 
 
 function uid(): string {
@@ -9,7 +9,7 @@ function uid(): string {
 
 export function createDefaultFloor(level = 0): Floor {
   const id = uid();
-  return { id, name: level === 0 ? '一层' : `${level + 1} 层`, level, walls: [], rooms: [], doors: [], windows: [], furniture: [], stairs: [], columns: [], guides: [], measurements: [], annotations: [], textAnnotations: [], groups: [], walkthroughPoints: [] };
+  return { id, name: level === 0 ? '一层' : `${level + 1} 层`, level, walls: [], rooms: [], doors: [], windows: [], wallArt: [], furniture: [], stairs: [], columns: [], guides: [], measurements: [], annotations: [], textAnnotations: [], groups: [], walkthroughPoints: [] };
 }
 
 export function createDefaultProject(name = '未命名项目', customPatterns: CustomPattern[] = []): Project {
@@ -32,7 +32,7 @@ export const activeFloor = derived(currentProject, ($p) => {
   return $p.floors.find((f) => f.id === $p.activeFloorId) ?? $p.floors[0] ?? null;
 });
 
-export type Tool = 'select' | 'wall' | 'door' | 'window' | 'furniture' | 'text' | 'walkthrough';
+export type Tool = 'select' | 'wall' | 'door' | 'window' | 'wall-art' | 'furniture' | 'text' | 'walkthrough';
 export const selectedTool = writable<Tool>('select');
 export const snapEnabled = writable<boolean>(true);
 /** When true, left-click drag pans the canvas instead of selecting */
@@ -176,6 +176,7 @@ export function removeWall(id: string) {
     f.walls = f.walls.filter((w) => w.id !== id);
     f.doors = f.doors.filter((d) => d.wallId !== id);
     f.windows = f.windows.filter((w) => w.wallId !== id);
+    f.wallArt = (f.wallArt ?? []).filter((item) => item.wallId !== id);
   }, 'Deleted wall');
 }
 
@@ -212,6 +213,27 @@ export function addWindow(wallId: string, position: number, windowType: import('
     f.windows.push({ id, wallId, position, width, height, sillHeight: 90, type: windowType });
   }, `Added ${windowType} window`);
   return id;
+}
+
+export function addWallArt(wallId: string, position: number, side: WallArt['side'] = 'normal'): string {
+  const id = uid();
+  mutate((f) => {
+    f.wallArt = [...(f.wallArt ?? []), { id, wallId, position, width: 120, height: 80, bottomHeight: 120, side, color: '#b45309' }];
+  }, 'Added wall art');
+  return id;
+}
+
+export function duplicateWallArt(id: string): string | null {
+  const p = get(currentProject);
+  if (!p) return null;
+  const floor = p.floors.find((item) => item.id === p.activeFloorId);
+  const source = floor?.wallArt?.find((item) => item.id === id);
+  if (!floor || !source) return null;
+  const newId = uid();
+  mutate((target) => {
+    target.wallArt = [...(target.wallArt ?? []), { ...source, id: newId, position: Math.min(0.95, source.position + 0.1) }];
+  });
+  return newId;
 }
 
 export function addFurniture(catalogId: string, position: Point): string {
@@ -474,9 +496,11 @@ export function removeElement(id: string) {
       // Cascade delete: remove doors and windows attached to this wall
       f.doors = f.doors.filter((d) => d.wallId !== id);
       f.windows = f.windows.filter((w) => w.wallId !== id);
+      f.wallArt = (f.wallArt ?? []).filter((item) => item.wallId !== id);
     }
     f.doors = f.doors.filter((d) => d.id !== id);
     f.windows = f.windows.filter((w) => w.id !== id);
+    f.wallArt = (f.wallArt ?? []).filter((item) => item.id !== id);
     f.furniture = f.furniture.filter((fi) => fi.id !== id);
     if (f.stairs) f.stairs = f.stairs.filter((s) => s.id !== id);
     if (f.columns) f.columns = f.columns.filter((c) => c.id !== id);
@@ -552,6 +576,13 @@ export function updateWindow(id: string, updates: Partial<Win>) {
   });
 }
 
+export function updateWallArt(id: string, updates: Partial<WallArt>) {
+  mutate((f) => {
+    const item = f.wallArt?.find((wallArt) => wallArt.id === id);
+    if (item) Object.assign(item, updates);
+  });
+}
+
 export function updateFurniture(id: string, updates: Partial<FurnitureItem>) {
   mutate((f) => {
     const fi = f.furniture.find((fi) => fi.id === id);
@@ -580,7 +611,7 @@ export function addFloor(name?: string, copyCurrentLayout = false) {
   if (!p) return;
   snapshot('Added floor');
   const level = p.floors.length;
-  const floor: Floor = { id: uid(), name: name ?? `${level + 1} 层`, level, walls: [], rooms: [], doors: [], windows: [], furniture: [], stairs: [], columns: [], guides: [], measurements: [], annotations: [], textAnnotations: [], groups: [], walkthroughPoints: [] };
+  const floor: Floor = { id: uid(), name: name ?? `${level + 1} 层`, level, walls: [], rooms: [], doors: [], windows: [], wallArt: [], furniture: [], stairs: [], columns: [], guides: [], measurements: [], annotations: [], textAnnotations: [], groups: [], walkthroughPoints: [] };
   if (copyCurrentLayout) {
     const cur = p.floors.find(f => f.id === p.activeFloorId);
     if (cur) {
@@ -642,6 +673,7 @@ export function importFloorIntoCurrentProject(floor: import('$lib/models/types')
   existing.walls = [...existing.walls, ...floor.walls];
   existing.doors = [...existing.doors, ...floor.doors];
   existing.windows = [...existing.windows, ...floor.windows];
+  existing.wallArt = [...(existing.wallArt ?? []), ...(floor.wallArt ?? [])];
   existing.furniture = [...existing.furniture, ...floor.furniture];
   if (floor.stairs) existing.stairs = [...(existing.stairs || []), ...floor.stairs];
   if (floor.columns) existing.columns = [...(existing.columns || []), ...floor.columns];
@@ -762,6 +794,16 @@ export function splitWall(id: string, t: number): string | null {
         win.position = (win.position - t) / (1 - t);
       } else {
         win.position = win.position / t;
+      }
+    }
+  }
+  for (const item of floor.wallArt ?? []) {
+    if (item.wallId === id) {
+      if (item.position > t) {
+        item.wallId = newId;
+        item.position = (item.position - t) / (1 - t);
+      } else {
+        item.position = item.position / t;
       }
     }
   }

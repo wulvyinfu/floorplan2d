@@ -24,6 +24,7 @@ This project is a lightweight 2D editor derived from openplan3d. It supports fas
 - **门窗 / Doors & Windows** — 支持多种门窗样式 / Multiple door and window styles
 - **楼梯 / Stairs** — 支持直梯、L 形和 U 形楼梯，可配置尺寸 / Straight, L-shaped, and U-shaped stairs with configurable dimensions
 - **房间 / Rooms** — 根据墙体自动识别，可自定义标签和颜色 / Auto-detected from walls with customizable labels and colors
+- **壁画 / Wall art** — 挂载到墙体并可切换贴合墙面、调整尺寸与离地高度 / Mount artwork on walls, switch wall sides, and adjust dimensions and elevation
 
 ### 🛋️ 家具库 / Furniture Library
 - **140+ 个物件 / 140+ items**，覆盖客厅、卧室、厨房、浴室、餐厅、办公室和户外等分类 / Across living room, bedroom, kitchen, bathroom, dining, office, outdoor, and more
@@ -338,6 +339,32 @@ editorRef.current?.setWalkthroughPoints([
 路线保存在各楼层的 `walkthroughPoints` 数组中，连线由数组顺序自动生成。`source` 为 `editor` 或 `api`；初始项目与 `loadProject()` 中已有标点不会触发新增回调。
 
 Routes are stored in each floor's `walkthroughPoints` array, and connections follow the array order. `source` is `editor` or `api`; points already present in the initial project or in `loadProject()` do not trigger the added callback.
+
+#### 壁画 / Wall Art
+
+在“建造 → 壁画”中选择工具，然后单击墙体即可挂载壁画。壁画可以沿所属墙体拖动，在属性面板中修改宽度、高度、底边离地高度、画框颜色，并通过“正面/背面”切换贴合墙壁的一面。图片可以从本地上传，或使用 HTTP(S) 图片地址。
+
+Choose Build → Wall Art and click a wall to mount artwork. Wall art can be dragged along its wall. Use the properties panel to edit width, height, bottom elevation, frame color, and switch between the wall's normal and opposite sides. Images can be uploaded locally or supplied through an HTTP(S) URL.
+
+壁画保存在楼层的 `wallArt` 数组中：/ Wall art is stored in each floor's `wallArt` array:
+
+```ts
+interface WallArt {
+  id: string;
+  wallId: string;
+  position: number;
+  width: number;
+  height: number;
+  bottomHeight: number;
+  side: 'normal' | 'anti';
+  color: string;
+  src?: string;
+}
+```
+
+默认尺寸为 `120 × 80cm`，底边离地 `120cm`。`normal` 和 `anti` 分别表示墙体起点到终点方向的左侧和右侧。`src` 支持 HTTP(S) 地址，以及 SVG、PNG、JPEG、WebP data URL；本地上传会转换为 data URL 并随项目 JSON 保存（单张最大 5MB）。远程图片服务器需要允许跨域访问。删除或拆分墙体时，关联壁画会自动删除或迁移到对应墙段。
+
+The default size is `120 × 80cm`, with a `120cm` bottom elevation. `normal` and `anti` represent the left and right sides relative to the wall's start-to-end direction. `src` accepts HTTP(S) URLs and SVG, PNG, JPEG, or WebP data URLs. Local uploads are converted to data URLs and persisted in project JSON (maximum 5MB per image). Remote image servers must allow cross-origin access. Deleting or splitting a wall automatically removes or reattaches related artwork.
 
 ### 生产构建 / Production Build
 

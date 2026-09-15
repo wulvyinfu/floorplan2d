@@ -1,6 +1,6 @@
 <script lang="ts">
   import { resolveAssetUrl } from '$lib/runtime';
-  import { activeFloor, selectedElementId, selectedRoomId, updateWall, updateDoor, updateWindow, updateRoom, updateFurniture, detectedRoomsStore, updateStair, updateColumn, updateBackgroundImage, setBackgroundImage, calibrationMode, calibrationPoints, updateTextAnnotation, toggleFurnitureLock } from '$lib/stores/project';
+  import { activeFloor, selectedElementId, selectedRoomId, updateWall, updateDoor, updateWindow, updateWallArt, updateRoom, updateFurniture, detectedRoomsStore, updateStair, updateColumn, updateBackgroundImage, setBackgroundImage, calibrationMode, calibrationPoints, updateTextAnnotation, toggleFurnitureLock } from '$lib/stores/project';
   import { floorMaterials, wallColors } from '$lib/utils/materials';
   import { getCatalogItem } from '$lib/utils/furnitureCatalog';
   import { projectSettings, formatLength, formatArea } from '$lib/stores/settings';
@@ -53,12 +53,24 @@
   let selectedWall = $derived(floor?.walls?.find(w => w.id === selId) ?? null);
   let selectedDoor = $derived(floor?.doors?.find(d => d.id === selId) ?? null);
   let selectedWindow = $derived(floor?.windows?.find(w => w.id === selId) ?? null);
+  let selectedWallArt = $derived(floor?.wallArt?.find(item => item.id === selId) ?? null);
   let selectedFurniture = $derived(floor?.furniture?.find(f => f.id === selId) ?? null);
   let selectedStair = $derived(floor?.stairs?.find(s => s.id === selId) ?? null);
   let selectedColumn = $derived(floor?.columns?.find(c => c.id === selId) ?? null);
   let selectedTextAnnotation = $derived(floor?.textAnnotations?.find(t => t.id === selId) ?? null);
   let hasBgImage = $derived(!!floor?.backgroundImage);
   let selectedRoom = $derived(floor?.rooms?.find(r => r.id === selRoomId) ?? detectedRooms.find(r => r.id === selRoomId) ?? null);
+  let wallArtSrcInput = $state('');
+  let wallArtSrcId: string | null = $state(null);
+  let wallArtSrcError = $state('');
+
+  $effect(() => {
+    if (selectedWallArt?.id !== wallArtSrcId) {
+      wallArtSrcId = selectedWallArt?.id ?? null;
+      wallArtSrcInput = selectedWallArt?.src ?? '';
+      wallArtSrcError = '';
+    }
+  });
 
   // Helper to get the parent wall for selected door/window
   let selectedDoorWall = $derived((selectedDoor && floor?.walls?.find(w => w.id === selectedDoor.wallId)) ?? null);
@@ -141,6 +153,58 @@
   function onWindowSill(e: Event) {
     if (!selectedWindow) return;
     updateWindow(selectedWindow.id, { sillHeight: inputToCm(Number((e.target as HTMLInputElement).value)) });
+  }
+
+  function onWallArtNumber(field: 'width' | 'height' | 'bottomHeight', e: Event) {
+    if (!selectedWallArt) return;
+    const value = Math.max(field === 'bottomHeight' ? 0 : 1, inputToCm(Number((e.target as HTMLInputElement).value)) || 0);
+    updateWallArt(selectedWallArt.id, { [field]: value });
+  }
+
+  function applyWallArtSrc() {
+    if (!selectedWallArt) return;
+    const src = wallArtSrcInput.trim();
+    wallArtSrcError = '';
+    wallArtSrcInput = src;
+    updateWallArt(selectedWallArt.id, { src: src || undefined });
+  }
+
+  function uploadWallArtImage() {
+    if (!selectedWallArt) return;
+    const wallArtId = selectedWallArt.id;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/svg+xml,image/png,image/jpeg,image/webp';
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      if (!['image/svg+xml', 'image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+        wallArtSrcError = '仅支持 SVG、PNG、JPEG 或 WebP 图片';
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        wallArtSrcError = '图片不能超过 5MB';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const src = typeof reader.result === 'string' ? reader.result : '';
+        if (!src) return;
+        wallArtSrcInput = src;
+        wallArtSrcError = '';
+        updateWallArt(wallArtId, { src });
+      };
+      reader.onerror = () => { wallArtSrcError = '图片读取失败'; };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  }
+
+  function clearWallArtImage() {
+    if (!selectedWallArt) return;
+    wallArtSrcInput = '';
+    wallArtSrcError = '';
+    updateWallArt(selectedWallArt.id, { src: undefined });
   }
 
   // Furniture handlers
@@ -304,7 +368,7 @@
     { label: '🧶 地毯', ids: ['carpet-beige', 'carpet-gray'] },
   ];
 
-  let hasSelection = $derived(!!selectedWall || !!selectedDoor || !!selectedWindow || !!selectedFurniture || !!selectedRoom || !!selectedStair || !!selectedColumn || !!selectedTextAnnotation || hasBgImage);
+  let hasSelection = $derived(!!selectedWall || !!selectedDoor || !!selectedWindow || !!selectedWallArt || !!selectedFurniture || !!selectedRoom || !!selectedStair || !!selectedColumn || !!selectedTextAnnotation || hasBgImage);
 </script>
 
 <div class="w-64 shrink-0 bg-white border-l border-gray-200 flex flex-col overflow-y-auto p-3 fixed right-0 z-40 shadow-lg" class:hidden={!hasSelection} style="top: 48px; bottom: 36px;">
@@ -520,6 +584,54 @@
         <span class="text-xs text-gray-500">窗台高度 ({unitLabel()})</span>
         <input type="number" value={displayValue(selectedWindow.sillHeight)} oninput={onWindowSill} class="w-full px-2 py-1 border border-gray-200 rounded text-sm" />
       </label>
+    </div>
+
+  {:else if selectedWallArt}
+    <h3 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+      <span class="w-6 h-6 bg-amber-100 rounded flex items-center justify-center text-xs">▣</span>
+      壁画属性
+    </h3>
+    <div class="space-y-3">
+      <label class="block">
+        <span class="text-xs text-gray-500">宽度 ({unitLabel()})</span>
+        <input type="number" min="1" value={displayValue(selectedWallArt.width)} oninput={(e) => onWallArtNumber('width', e)} class="w-full px-2 py-1 border border-gray-200 rounded text-sm" />
+      </label>
+      <label class="block">
+        <span class="text-xs text-gray-500">高度 ({unitLabel()})</span>
+        <input type="number" min="1" value={displayValue(selectedWallArt.height)} oninput={(e) => onWallArtNumber('height', e)} class="w-full px-2 py-1 border border-gray-200 rounded text-sm" />
+      </label>
+      <label class="block">
+        <span class="text-xs text-gray-500">底边离地 ({unitLabel()})</span>
+        <input type="number" min="0" value={displayValue(selectedWallArt.bottomHeight)} oninput={(e) => onWallArtNumber('bottomHeight', e)} class="w-full px-2 py-1 border border-gray-200 rounded text-sm" />
+      </label>
+      <div>
+        <span class="text-xs text-gray-500">贴合墙面</span>
+        <div class="flex gap-2 mt-1">
+          <button onclick={() => updateWallArt(selectedWallArt!.id, { side: 'normal' })} class="flex-1 px-2 py-1.5 border rounded text-sm transition-colors {selectedWallArt.side === 'normal' ? 'bg-amber-100 border-amber-400 text-amber-800' : 'border-gray-200 hover:bg-gray-50'}">正面</button>
+          <button onclick={() => updateWallArt(selectedWallArt!.id, { side: 'anti' })} class="flex-1 px-2 py-1.5 border rounded text-sm transition-colors {selectedWallArt.side === 'anti' ? 'bg-amber-100 border-amber-400 text-amber-800' : 'border-gray-200 hover:bg-gray-50'}">背面</button>
+        </div>
+      </div>
+      <label class="flex items-center gap-2">
+        <span class="text-xs text-gray-500">画框颜色</span>
+        <input type="color" value={selectedWallArt.color} oninput={(e) => updateWallArt(selectedWallArt!.id, { color: (e.target as HTMLInputElement).value })} class="w-8 h-7 rounded border border-gray-200 cursor-pointer" />
+      </label>
+      <div class="space-y-2">
+        <span class="text-xs text-gray-500">壁画图片</span>
+        {#if selectedWallArt.src}
+          <img src={selectedWallArt.src} alt="壁画预览" class="w-full h-24 object-cover border border-gray-200 rounded" onerror={() => wallArtSrcError = '图片加载失败，请检查地址或跨域配置'} />
+        {/if}
+        <input bind:value={wallArtSrcInput} onblur={applyWallArtSrc} placeholder="https://example.com/art.jpg" class="w-full px-2 py-1.5 border border-gray-200 rounded text-xs" />
+        <div class="flex gap-2">
+          <button onclick={applyWallArtSrc} class="flex-1 px-2 py-1.5 border border-gray-200 rounded text-xs hover:bg-gray-50">应用地址</button>
+          <button onclick={uploadWallArtImage} class="flex-1 px-2 py-1.5 bg-amber-50 border border-amber-300 text-amber-800 rounded text-xs hover:bg-amber-100">上传图片</button>
+          {#if selectedWallArt.src}
+            <button onclick={clearWallArtImage} class="px-2 py-1.5 border border-red-200 text-red-600 rounded text-xs hover:bg-red-50">清除</button>
+          {/if}
+        </div>
+        {#if wallArtSrcError}
+          <p class="text-[11px] text-red-500">{wallArtSrcError}</p>
+        {/if}
+      </div>
     </div>
 
   {:else if selectedFurniture}

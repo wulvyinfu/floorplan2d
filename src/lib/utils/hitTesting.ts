@@ -3,7 +3,7 @@
  * All functions are pure — they take data and return results.
  * Extracted from FloorPlanCanvas.svelte.
  */
-import type { Point, Wall, Door, Window as Win, FurnitureItem, Column, Stair, Room, Measurement, Annotation, TextAnnotation, WalkthroughPoint } from '$lib/models/types';
+import type { Point, Wall, Door, Window as Win, WallArt, FurnitureItem, Column, Stair, Room, Measurement, Annotation, TextAnnotation, WalkthroughPoint } from '$lib/models/types';
 
 export function findWalkthroughPointAt(position: Point, points: readonly WalkthroughPoint[] | undefined, zoom: number): WalkthroughPoint | null {
   if (!points) return null;
@@ -17,7 +17,7 @@ export function findWalkthroughPointAt(position: Point, points: readonly Walkthr
 import type { Room } from '$lib/models/types';
 import { getCatalogItem } from '$lib/utils/furnitureCatalog';
 import { getRoomPolygon } from '$lib/utils/roomDetection';
-import { wallPointAt } from '$lib/utils/canvasRenderer';
+import { wallArtCenter, wallPointAt, wallTangentAt } from '$lib/utils/canvasRenderer';
 import type { HandleType } from '$lib/utils/canvasInteraction';
 
 export function pointInPolygon(p: Point, poly: Point[]): boolean {
@@ -171,6 +171,23 @@ export function findWindowAt(p: Point, windows: Win[], walls: Wall[], zoom: numb
     if (!wall) continue;
     const cp = wallPointAt(wall, w.position);
     if (Math.hypot(p.x - cp.x, p.y - cp.y) < (w.width / 2 + 5) / zoom) return w;
+  }
+  return null;
+}
+
+export function findWallArtAt(p: Point, items: readonly WallArt[] | undefined, walls: Wall[], zoom: number): WallArt | null {
+  if (!items) return null;
+  for (let index = items.length - 1; index >= 0; index -= 1) {
+    const item = items[index];
+    const wall = walls.find((candidate) => candidate.id === item.wallId);
+    if (!wall) continue;
+    const center = wallArtCenter(wall, item);
+    const tangent = wallTangentAt(wall, item.position);
+    const dx = p.x - center.x;
+    const dy = p.y - center.y;
+    const along = dx * tangent.x + dy * tangent.y;
+    const across = -dx * tangent.y + dy * tangent.x;
+    if (Math.abs(along) <= item.width / 2 + 6 / zoom && Math.abs(across) <= 12 / zoom) return item;
   }
   return null;
 }

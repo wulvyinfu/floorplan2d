@@ -58,6 +58,18 @@ export interface Window {
   type: 'standard' | 'fixed' | 'casement' | 'sliding' | 'bay';
 }
 
+export interface WallArt {
+  id: string;
+  wallId: string;
+  position: number;
+  width: number;
+  height: number;
+  bottomHeight: number;
+  side: 'normal' | 'anti';
+  color: string;
+  src?: string;
+}
+
 export interface OpeningCatalogConfig {
   showDoors?: boolean;
   showWindows?: boolean;
@@ -247,6 +259,7 @@ export interface Floor {
   rooms: Room[];
   doors: Door[];
   windows: Window[];
+  wallArt?: WallArt[];
   furniture: FurnitureItem[];
   stairs: Stair[];
   columns: Column[];

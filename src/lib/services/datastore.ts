@@ -57,6 +57,7 @@ export const localStore: DataStore = {
       if (!floor.rooms) floor.rooms = [];
       if (!floor.doors) floor.doors = [];
       if (!floor.windows) floor.windows = [];
+      if (!floor.wallArt) floor.wallArt = [];
       if (!floor.furniture) floor.furniture = [];
       if (!floor.stairs) floor.stairs = [];
       if (!floor.columns) floor.columns = [];

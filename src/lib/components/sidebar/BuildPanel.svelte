@@ -365,6 +365,18 @@
             <div class="text-xs text-gray-400">连续点击自动连接路线</div>
           </div>
         </button>
+        <button
+          class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors {currentTool === 'wall-art' ? 'bg-amber-50 text-amber-800 ring-1 ring-amber-200' : 'hover:bg-gray-50 text-gray-700'}"
+          onclick={() => setTool('wall-art')}
+        >
+          <div class="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16"/><path d="m7 15 3-3 2 2 3-4 2 3"/></svg>
+          </div>
+          <div class="text-left">
+            <div class="font-medium">壁画</div>
+            <div class="text-xs text-gray-400">单击墙壁进行挂载</div>
+          </div>
+        </button>
 
         {#if false}
         <h3 class="text-xs font-semibold text-gray-400 uppercase mb-2 mt-3">结构</h3>

@@ -16,11 +16,12 @@ export interface Point { x: number; y: number }
 export interface WalkthroughPoint extends Point { id: string; name?: string }
 export type DoorType = 'single' | 'double' | 'sliding' | 'french' | 'pocket' | 'bifold';
 export type WindowType = 'standard' | 'fixed' | 'casement' | 'sliding' | 'bay';
+export interface WallArt { id: string; wallId: string; position: number; width: number; height: number; bottomHeight: number; side: 'normal' | 'anti'; color: string; src?: string }
 export interface OpeningCatalogConfig { showDoors?: boolean; showWindows?: boolean; doorTypes?: readonly DoorType[]; windowTypes?: readonly WindowType[] }
 export type ObjectShape = 'rectangle' | 'circle';
 export interface ObjectLabel { text: string; color?: string; fontSize?: number; offsetX?: number; offsetY?: number }
 export interface FurnitureItem { id: string; catalogId: string; position: Point; rotation: number; scale: { x: number; y: number; z: number }; color?: string; width?: number; depth?: number; height?: number; material?: string; locked?: boolean; label?: ObjectLabel }
-export interface Floor { id: string; name: string; level: number; walls: unknown[]; rooms: unknown[]; doors: unknown[]; windows: unknown[]; furniture: FurnitureItem[]; stairs: unknown[]; columns: unknown[]; guides: unknown[]; measurements: unknown[]; annotations: unknown[]; textAnnotations: unknown[]; groups: unknown[]; walkthroughPoints?: WalkthroughPoint[] }
+export interface Floor { id: string; name: string; level: number; walls: unknown[]; rooms: unknown[]; doors: unknown[]; windows: unknown[]; wallArt?: WallArt[]; furniture: FurnitureItem[]; stairs: unknown[]; columns: unknown[]; guides: unknown[]; measurements: unknown[]; annotations: unknown[]; textAnnotations: unknown[]; groups: unknown[]; walkthroughPoints?: WalkthroughPoint[] }
 export interface CustomPattern { id: string; name: string; category?: string; src?: string; shape?: ObjectShape; color?: string; width: number; depth: number; height?: number }
 export interface DeviceInstanceInput { externalId?: string; floorId?: string; position: Point; rotation?: number; scale?: Partial<{ x: number; y: number; z: number }>; color?: string; width?: number; depth?: number; height?: number; material?: string; locked?: boolean; label?: string | ObjectLabel }
 export interface ExternalObjectInput extends DeviceInstanceInput { pattern: CustomPattern }
@@ -30,7 +31,7 @@ export interface GeneratedObjectResult { externalId?: string; objectId: string; 
 export interface GenerateObjectsResult { projectId: string; generated: GeneratedObjectResult[]; updatedAt: Date }
 export interface ObjectAddedEvent { object: FurnitureItem; floor: Floor; definition?: CustomPattern; source: 'editor' | 'batch' }
 export interface WalkthroughPointAddedEvent { point: WalkthroughPoint; floor: Floor; index: number; source: 'editor' | 'api' }
-export type Tool = 'select' | 'wall' | 'door' | 'window' | 'furniture' | 'text' | 'walkthrough';
+export type Tool = 'select' | 'wall' | 'door' | 'window' | 'wall-art' | 'furniture' | 'text' | 'walkthrough';
 export class GenerateObjectsError extends Error { readonly issues: string[]; constructor(issues: string[]) }
 export interface RoomPreset { id: string; name: string; icon: string; description: string; getWalls(width: number, height: number): { start: Point; end: Point }[] }
 export interface FurniturePlacement { catalogId: string; x: number; y: number; rotation: number }
