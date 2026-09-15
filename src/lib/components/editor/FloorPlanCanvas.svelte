@@ -1922,8 +1922,12 @@
     return _findWallAt(p, currentFloor.walls, zoom);
   }
 
+  function isWalkthroughPoint(id: string | null): boolean {
+    return !!id && !!currentFloor?.walkthroughPoints?.some((point) => point.id === id);
+  }
+
   function findHandleAt(p: Point): HandleType | null {
-    if (!currentFloor) return null;
+    if (!currentFloor || isWalkthroughPoint(currentSelectedId)) return null;
     return _findHandleAt(p, currentSelectedId, currentFloor.furniture, zoom);
   }
 
@@ -3110,6 +3114,7 @@
         if (currentPlacingId) {
           placingRotation.update(r => (r + 15) % 360);
         } else if (currentSelectedId && currentFloor) {
+          if (isWalkthroughPoint(currentSelectedId)) return;
           const fi = currentFloor.furniture.find(f => f.id === currentSelectedId);
           if (fi) rotateFurniture(fi.id, 15);
         }
