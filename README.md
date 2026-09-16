@@ -26,7 +26,7 @@ This project is a lightweight 2D editor derived from openplan3d. It supports fas
 - **房间 / Rooms** — 根据墙体自动识别，可自定义标签和颜色 / Auto-detected from walls with customizable labels and colors
 - **壁画 / Wall art** — 挂载到墙体并可切换贴合墙面、调整尺寸与离地高度 / Mount artwork on walls, switch wall sides, and adjust dimensions and elevation
 
-### 🛋️ 家具库 / Furniture Library
+<!-- ### 🛋️ 家具库 / Furniture Library
 - **140+ 个物件 / 140+ items**，覆盖客厅、卧室、厨房、浴室、餐厅、办公室和户外等分类 / Across living room, bedroom, kitchen, bathroom, dining, office, outdoor, and more
 - 支持拖放、旋转、缩放和吸附 / Drag-and-drop placement with rotation, resizing, and snapping
 - 可在 3D 视图中渲染完整的 **3D 模型** / Full **3D models** rendered in the 3D view
@@ -35,7 +35,7 @@ This project is a lightweight 2D editor derived from openplan3d. It supports fas
 - **实时 3D 预览 / Real-time 3D preview** — 使用 `Tab` 切换 / Toggle with `Tab`
 - **漫游模式 / Walkthrough mode** — 以第一人称浏览户型图 / First-person navigation through your floor plan
 - **材质编辑器 / Material editor** — 为墙体、地面和天花板应用木材、瓷砖、大理石、地毯、混凝土、砖等纹理 / Apply textures to walls, floors, and ceilings
-- **灯光 / Lighting** — 可调节强度的环境光与方向光 / Ambient and directional lighting with adjustable intensity
+- **灯光 / Lighting** — 可调节强度的环境光与方向光 / Ambient and directional lighting with adjustable intensity -->
 
 ### 📐 专业工具 / Pro Tools
 - **网格吸附 / Snap to grid** — 可配置网格尺寸 / Configurable grid size
@@ -377,6 +377,10 @@ The default size is `120 × 80cm`, with a `120cm` bottom elevation. `normal` and
 The Coordinate Normalization toolbar button moves the active floor's wall-bounds center to the world origin `(0, 0)` and translates all absolute coordinates on that floor. React integrations can call `editorRef.current?.normalizeCoordinates(floorId?)`; it returns the applied `{ x, y }` offset, or `null` when no walls exist.
 
 ### 生产构建 / Production Build
+
+批量矩阵可通过 `editorRef.current?.preGenerateObjectGrid({ pattern, rows, columns, rowGap, columnGap })` 进入鼠标预放置模式；单击后以落点为中心生成。
+
+Use `preGenerateObjectGrid({ pattern, rows, columns, rowGap, columnGap })` to preview a grid under the pointer and place it centered at the clicked position.
 
 ```bash
 npm run build

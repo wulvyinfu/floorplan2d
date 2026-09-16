@@ -1,5 +1,6 @@
 import { writable, derived, get } from 'svelte/store';
 import { GenerateObjectsError } from '$lib/models/types';
+import type { BatchGridPlacementInput } from '$lib/models/types';
 import type { Project, Floor, Wall, Door, Window as Win, WallArt, FurnitureItem, Point, Stair, Column, BackgroundImage, GuideLine, ElementGroup, CustomPattern, ExternalObjectInput, GenerateObjectsInput, GenerateObjectsResult, WalkthroughPoint } from '$lib/models/types';
 
 
@@ -399,6 +400,25 @@ export function generateObjects(input: GenerateObjectsInput): GenerateObjectsRes
     updatedAt
   });
   return { projectId: project.id, generated, updatedAt };
+}
+
+export const pendingBatchGridPlacement = writable<BatchGridPlacementInput | null>(null);
+
+/** Start an interactive rectangular batch placement completed by the next canvas click. */
+export function preGenerateObjectGrid(input: BatchGridPlacementInput): void {
+  const issues: string[] = [];
+  if (!input.pattern?.id?.trim()) issues.push('物件类型不能为空');
+  if (!Number.isInteger(input.rows) || input.rows < 1) issues.push('行数必须是大于 0 的整数');
+  if (!Number.isInteger(input.columns) || input.columns < 1) issues.push('列数必须是大于 0 的整数');
+  if (!Number.isFinite(input.rowGap) || input.rowGap < 0) issues.push('行间距不能小于 0');
+  if (!Number.isFinite(input.columnGap) || input.columnGap < 0) issues.push('列间距不能小于 0');
+  if (issues.length) throw new GenerateObjectsError(issues);
+  pendingBatchGridPlacement.set({ ...input, pattern: { ...input.pattern } });
+  selectedTool.set('select');
+}
+
+export function cancelObjectGridPlacement(): void {
+  pendingBatchGridPlacement.set(null);
 }
 
 /** Snapshot the current state before a drag begins (call once at drag start) */

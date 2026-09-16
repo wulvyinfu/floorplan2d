@@ -155,6 +155,20 @@ export interface DeviceBatchInput {
 
 export type GenerateObjectsInput = readonly ExternalObjectInput[] | DeviceBatchInput;
 
+export interface BatchGridPlacementInput {
+  pattern: CustomPattern;
+  rows: number;
+  columns: number;
+  rowGap: number;
+  columnGap: number;
+  floorId?: string;
+  rotation?: number;
+  scale?: Partial<{ x: number; y: number; z: number }>;
+  color?: string;
+  material?: string;
+  locked?: boolean;
+}
+
 export interface GeneratedObjectResult {
   externalId?: string;
   objectId: string;

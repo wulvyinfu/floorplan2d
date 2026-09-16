@@ -7,6 +7,7 @@ import { createDefaultFloor, createDefaultProject } from './stores/project';
 import { localStore } from './services/datastore';
 import type { CSSProperties, ReactNode } from 'react';
 import { GenerateObjectsError } from './models/types';
+import type { BatchGridPlacementInput } from './models/types';
 import type { CustomPattern, GenerateObjectsInput, GenerateObjectsResult, ObjectAddedEvent, OpeningCatalogConfig, Point, Project, WalkthroughPoint, WalkthroughPointAddedEvent } from './models/types';
 import type { Tool } from './stores/project';
 import type { RoomPreset } from './utils/roomPresets';
@@ -22,6 +23,7 @@ export interface FloorplanEditorHandle {
   setRoomCatalogs(presets: readonly RoomPreset[], templates: readonly RoomTemplate[]): void;
   setOpeningCatalog(config: OpeningCatalogConfig): void;
   generateObjects(input: GenerateObjectsInput): GenerateObjectsResult;
+  preGenerateObjectGrid(input: BatchGridPlacementInput): void;
   setTool(tool: Tool): void;
   addWalkthroughPoint(position: Point, name?: string, dwellTime?: number): WalkthroughPoint;
   setWalkthroughPoints(points: readonly WalkthroughPoint[], floorId?: string): void;
@@ -106,6 +108,10 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
     generateObjects: (items) => {
       if (!handleRef.current) throw new GenerateObjectsError(['编辑器尚未初始化，请在 onReady 后调用']);
       return handleRef.current.generateObjects(items);
+    },
+    preGenerateObjectGrid: (input) => {
+      if (!handleRef.current) throw new GenerateObjectsError(['编辑器尚未初始化，请在 onReady 后调用']);
+      handleRef.current.preGenerateObjectGrid(input);
     },
     setTool: (tool) => handleRef.current?.setTool(tool),
     addWalkthroughPoint: (position, name, dwellTime) => {

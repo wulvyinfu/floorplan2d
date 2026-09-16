@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
+  import type { BatchGridPlacementInput } from '$lib/models/types';
+  import { preGenerateObjectGrid as startObjectGridPlacement } from '$lib/stores/project';
   import type { CustomPattern, GenerateObjectsInput, GenerateObjectsResult, ObjectAddedEvent, OpeningCatalogConfig, Point, Project, WalkthroughPoint, WalkthroughPointAddedEvent } from '$lib/models/types';
   import type { RoomPreset } from '$lib/utils/roomPresets';
   import type { RoomTemplate } from '$lib/utils/roomTemplates';
@@ -30,6 +32,7 @@
     setRoomCatalogs(presets: readonly RoomPreset[], templates: readonly RoomTemplate[]): void;
     setOpeningCatalog(config: OpeningCatalogConfig): void;
     generateObjects(input: GenerateObjectsInput): GenerateObjectsResult;
+    preGenerateObjectGrid(input: BatchGridPlacementInput): void;
     setTool(tool: Tool): void;
     addWalkthroughPoint(position: Point, name?: string, dwellTime?: number): WalkthroughPoint;
     setWalkthroughPoints(points: readonly WalkthroughPoint[], floorId?: string): void;
@@ -141,6 +144,10 @@
 
   export function setOpeningCatalog(config: OpeningCatalogConfig) {
     openingCatalog = config;
+  }
+
+  export function preGenerateObjectGrid(input: BatchGridPlacementInput) {
+    startObjectGridPlacement(input);
   }
 
   export function generateObjects(input: GenerateObjectsInput) {
@@ -266,7 +273,7 @@
       }
     });
 
-    onReady?.({ getProject, loadProject, focus, registerPattern, removePattern, setRoomCatalogs, setOpeningCatalog, generateObjects, setTool, addWalkthroughPoint, setWalkthroughPoints, updateWalkthroughPoint, insertWalkthroughPoint, normalizeCoordinates });
+    onReady?.({ getProject, loadProject, focus, registerPattern, removePattern, setRoomCatalogs, setOpeningCatalog, generateObjects, preGenerateObjectGrid, setTool, addWalkthroughPoint, setWalkthroughPoints, updateWalkthroughPoint, insertWalkthroughPoint, normalizeCoordinates });
     root.addEventListener('keydown', handleKeydown);
 
     return () => {

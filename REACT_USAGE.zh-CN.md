@@ -338,6 +338,29 @@ const roomTemplates: RoomTemplate[] = [
 
 ## 9. 漫游标点和路线
 
+### 物件矩阵预生成与鼠标放置
+
+```tsx
+const devicePattern = { 
+  id: "cabinet-42u",// 对应物件 ID
+  name: "机柜",
+  category: "自定义物件",
+  color: "#2563eb",
+  width: 100,
+  depth: 100,
+  height: 200
+}
+editorRef.current?.preGenerateObjectGrid({
+  pattern: devicePattern,
+  rows: 3,
+  columns: 4,
+  rowGap: 50,
+  columnGap: 80
+});
+```
+
+调用后矩阵跟随鼠标预览，单击画布后以点击位置为中心一次性生成。间距单位为厘米。
+
 用户可在“建造 → 漫游标点”中连续点击画布。标点按照数组顺序自动连接，切换到选择工具后可以选择、拖动和删除标点。选中标点后可设置名称和停留时间，并通过“在此标点后添加新标点”直接扩展路线；若有下一点则插入两点中间，否则添加到当前点右侧。
 
 React 可以主动切换工具：

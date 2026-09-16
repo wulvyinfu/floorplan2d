@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { pendingBatchGridPlacement, generateObjects, cancelObjectGridPlacement } from '$lib/stores/project';
   import { activeFloor, selectedTool, selectedElementId, selectedElementIds, selectedRoomId, addWall, addDoor, addWindow, addWallArt, updateWall, moveWallEndpoint, updateDoor, updateWindow, updateWallArt, addFurniture, moveFurniture, commitFurnitureMove, rotateFurniture, setFurnitureRotation, scaleFurniture, removeElement, placingFurnitureId, placingRotation, placingDoorType, placingWindowType, detectedRoomsStore, duplicateDoor, duplicateWindow, duplicateWallArt, duplicateFurniture, duplicateWall, moveWallParallel, splitWall, snapEnabled, placingStair, addStair, moveStair, updateStair, placingColumn, placingColumnShape, addColumn, moveColumn, updateColumn, calibrationMode, calibrationPoints, updateBackgroundImage, setBackgroundImage, canvasZoom, canvasCamX, canvasCamY, panMode, showFurnitureStore, addGuide, moveGuide, removeGuide, beginUndoGroup, endUndoGroup, layerVisibility, updateRoom, addMeasurement, removeMeasurement, addAnnotation, removeAnnotation, updateAnnotation, addTextAnnotation, removeTextAnnotation, updateTextAnnotation, moveTextAnnotation, toggleFurnitureLock, createGroup, ungroupElements, findGroupForElement, addWalkthroughPoint, moveWalkthroughPoint } from '$lib/stores/project';
-  import type { Point, Wall, Door, Window as Win, WallArt, FurnitureItem, Stair, Column, GuideLine, Measurement, Annotation, TextAnnotation } from '$lib/models/types';
+  import type { Point, Wall, Door, Window as Win, WallArt, FurnitureItem, Stair, Column, GuideLine, Measurement, Annotation, TextAnnotation, BatchGridPlacementInput } from '$lib/models/types';
   import type { Floor, Room } from '$lib/models/types';
   import { detectRooms, getRoomPolygon, roomCentroid } from '$lib/utils/roomDetection';
   import { getMaterial } from '$lib/utils/materials';
@@ -171,6 +172,8 @@
   let draggingWallEndpoint: { wallId: string; endpoint: 'start' | 'end' } | null = $state(null);
   let draggingConnectedEndpoints: { wallId: string; endpoint: 'start' | 'end' }[] = $state([]);
   let dragPreview: { x: number; y: number; type: string; width: number; depth: number } | null = $state(null);
+  let batchGridPlacement: BatchGridPlacementInput | null = $state(null);
+  pendingBatchGridPlacement.subscribe((value) => { batchGridPlacement = value; markDirty(); });
 
   // Resize/rotate handle drag state
   type HandleType = 'resize-tl' | 'resize-tr' | 'resize-bl' | 'resize-br' | 'resize-t' | 'resize-b' | 'resize-l' | 'resize-r' | 'rotate';
@@ -2037,6 +2040,22 @@
     const rect = canvas.getBoundingClientRect();
     const wp = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
     const tool = currentTool;
+    if (batchGridPlacement) {
+      const c = batchGridPlacement;
+      const center = { x: snap(wp.x), y: snap(wp.y) };
+      const tw = c.columns * c.pattern.width + (c.columns - 1) * c.columnGap;
+      const td = c.rows * c.pattern.depth + (c.rows - 1) * c.rowGap;
+      const items = [];
+      for (let r = 0; r < c.rows; r++) for (let col = 0; col < c.columns; col++) items.push({
+        pattern: c.pattern, floorId: c.floorId,
+        position: { x: center.x - tw / 2 + c.pattern.width / 2 + col * (c.pattern.width + c.columnGap), y: center.y - td / 2 + c.pattern.depth / 2 + r * (c.pattern.depth + c.rowGap) },
+        rotation: c.rotation, scale: c.scale, color: c.color, material: c.material, locked: c.locked
+      });
+      generateObjects(items);
+      cancelObjectGridPlacement();
+      dragPreview = null;
+      return;
+    }
 
     // Text annotation tool: click to place text
     if (textAnnotationMode) {
@@ -2552,6 +2571,13 @@
     markDirty();
     const rect = canvas.getBoundingClientRect();
     mousePos = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+    if (batchGridPlacement) {
+      const c = batchGridPlacement;
+      dragPreview = { x: snap(mousePos.x), y: snap(mousePos.y), type: `${c.rows}×${c.columns}`,
+        width: c.columns * c.pattern.width + (c.columns - 1) * c.columnGap,
+        depth: c.rows * c.pattern.depth + (c.rows - 1) * c.rowGap };
+      return;
+    }
 
     if (draggingWalkthroughPointId) {
       moveWalkthroughPoint(draggingWalkthroughPointId, {
