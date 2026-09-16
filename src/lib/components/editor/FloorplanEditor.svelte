@@ -3,12 +3,13 @@
   import { get } from 'svelte/store';
   import type { BatchGridPlacementInput } from '$lib/models/types';
   import { preGenerateObjectGrid as startObjectGridPlacement } from '$lib/stores/project';
-  import type { CustomPattern, GenerateObjectsInput, GenerateObjectsResult, ObjectAddedEvent, OpeningCatalogConfig, Point, Project, WalkthroughPoint, WalkthroughPointAddedEvent } from '$lib/models/types';
+  import type { CustomPattern, GenerateObjectsInput, GenerateObjectsResult, ObjectAddedEvent, OpeningCatalogConfig, OptionsContextSnapshot, OptionsSelection, Point, Project, WalkthroughPoint, WalkthroughPointAddedEvent } from '$lib/models/types';
   import type { RoomPreset } from '$lib/utils/roomPresets';
   import type { RoomTemplate } from '$lib/utils/roomTemplates';
   import type { DataStore } from '$lib/services/datastore';
   import { localStore } from '$lib/services/datastore';
   import { configureRuntime } from '$lib/runtime';
+  import { activeFloor, selectedElementId, selectedElementIds, selectedRoomId } from '$lib/stores/project';
   import { addWalkthroughPoint as addProjectWalkthroughPoint, currentProject, createDefaultProject, generateObjects as generateProjectObjects, insertWalkthroughPoint as insertProjectWalkthroughPoint, normalizeCoordinates as normalizeProjectCoordinates, selectedTool, setWalkthroughPoints as setProjectWalkthroughPoints, updateWalkthroughPoint as updateProjectWalkthroughPoint } from '$lib/stores/project';
   import type { Tool } from '$lib/stores/project';
   import { registerCustomPattern, removeCustomPattern, setCustomPatterns } from '$lib/utils/customPatterns';
@@ -54,6 +55,8 @@
     onWalkthroughPointAdded?: (event: WalkthroughPointAddedEvent) => void;
     onReady?: (handle: FloorplanEditorHandle) => void;
     onModuleTarget?: (position: ModulePosition, element: HTMLElement | null) => void;
+    hideDefaultOptions?: boolean;
+    onOptionsContextChange?: (context: OptionsContextSnapshot | null) => void;
     customPatterns?: CustomPattern[];
     roomPresets?: readonly RoomPreset[];
     roomTemplates?: readonly RoomTemplate[];
@@ -71,11 +74,45 @@
     onWalkthroughPointAdded,
     onReady,
     onModuleTarget,
+    hideDefaultOptions = false,
+    onOptionsContextChange,
     customPatterns,
     roomPresets = [],
     roomTemplates = [],
     openingCatalog = {}
   }: Props = $props();
+
+  function resolveOptionsSelection(): OptionsSelection | null {
+    const floor = $activeFloor;
+    if (!floor) return null;
+    const roomId = $selectedRoomId;
+    if (roomId) {
+      const room = floor.rooms.find((item) => item.id === roomId);
+      if (room) return { kind: 'room', value: room };
+    }
+    const id = $selectedElementId;
+    if (!id) return null;
+    const sources = [
+      ['wall', floor.walls], ['door', floor.doors], ['window', floor.windows],
+      ['wallArt', floor.wallArt ?? []], ['furniture', floor.furniture], ['stair', floor.stairs],
+      ['column', floor.columns], ['textAnnotation', floor.textAnnotations ?? []],
+      ['walkthroughPoint', floor.walkthroughPoints ?? []]
+    ] as const;
+    for (const [kind, values] of sources) {
+      const value = values.find((item) => item.id === id);
+      if (value) return { kind, value } as OptionsSelection;
+    }
+    return null;
+  }
+
+  $effect(() => {
+    if (!ready || !onOptionsContextChange) return;
+    const projectValue = $currentProject;
+    const floor = $activeFloor;
+    onOptionsContextChange(projectValue && floor ? {
+      project: projectValue, floor, selection: resolveOptionsSelection(), selectedIds: [...$selectedElementIds]
+    } : null);
+  });
 
   let root: HTMLDivElement;
   let ready = $state(false);
@@ -305,7 +342,7 @@
         <LayersPanel />
       {/if}
       <div bind:this={rightPanelTarget} data-floorplan-module="right-panel" class="h-full shrink-0 overflow-auto empty:hidden"></div>
-      <PropertiesPanel />
+      {#if !hideDefaultOptions}<PropertiesPanel />{/if}
     </div>
 
     <button class="absolute bottom-4 left-14 w-8 h-8 rounded-full shadow-lg hover:bg-slate-600 transition-colors z-50 text-sm" class:bg-blue-600={showLayers} class:text-white={showLayers} class:bg-slate-700={!showLayers} class:text-gray-300={!showLayers} onclick={() => showLayers = !showLayers} title="图层面板（L）" aria-label="切换图层面板">层</button>

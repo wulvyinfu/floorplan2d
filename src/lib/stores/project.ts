@@ -44,6 +44,19 @@ export const selectedElementId = writable<string | null>(null);
 export const selectedElementIds = writable<Set<string>>(new Set());
 export const viewMode = writable<'2d' | '3d'>('2d');
 
+export function updateOptionsElement(kind: import('$lib/models/types').OptionsElementKind, id: string, updates: Record<string, unknown>): void {
+  mutate((floor) => {
+    const collections: Record<import('$lib/models/types').OptionsElementKind, Array<{ id: string }>> = {
+      wall: floor.walls, door: floor.doors, window: floor.windows,
+      wallArt: floor.wallArt ?? [], furniture: floor.furniture, room: floor.rooms,
+      stair: floor.stairs, column: floor.columns,
+      textAnnotation: floor.textAnnotations ?? [], walkthroughPoint: floor.walkthroughPoints ?? []
+    };
+    const target = collections[kind].find((item) => item.id === id);
+    if (target) Object.assign(target, updates);
+  }, 'Updated element options');
+}
+
 // Undo / Redo
 interface UndoEntry {
   state: string;

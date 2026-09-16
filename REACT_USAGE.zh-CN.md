@@ -338,6 +338,33 @@ const roomTemplates: RoomTemplate[] = [
 
 ## 9. 漫游标点和路线
 
+## 自定义右侧属性操作栏
+
+`optionsRender` 会完全覆盖内置右侧属性栏，适用于墙、门、窗、壁画、家具、房间、楼梯、柱、文本标注和漫游标点。返回 `null` 时右栏保持为空，不会回退到默认属性栏。
+
+```tsx
+<FloorplanEditor
+  optionsRender={({ selection, updateSelected, removeSelected }) => {
+    if (!selection) return <div className="p-4">请选择物件</div>;
+    return (
+      <div className="w-72 p-4">
+        <h3>{selection.kind}</h3>
+        {'width' in selection.value && (
+          <input
+            type="number"
+            value={selection.value.width}
+            onChange={(event) => updateSelected({ width: Number(event.target.value) })}
+          />
+        )}
+        <button onClick={removeSelected}>删除</button>
+      </div>
+    );
+  }}
+/>
+```
+
+上下文包含 `project`、`floor`、`selection`、`selectedIds`，以及 `updateSelected()`、`removeSelected()`、`select()`、`clearSelection()` 操作方法。`modules.rightPanel` 仍是附加内容；如同时传入，会与自定义属性栏显示在同一右侧容器中。
+
 ### 物件矩阵预生成与鼠标放置
 
 ```tsx

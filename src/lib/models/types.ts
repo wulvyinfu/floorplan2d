@@ -201,6 +201,20 @@ export interface ElementGroup {
   elementIds: string[];
 }
 
+export type OptionsElementKind = 'wall' | 'door' | 'window' | 'wallArt' | 'furniture' | 'room' | 'stair' | 'column' | 'textAnnotation' | 'walkthroughPoint';
+export type OptionsElement = Wall | Door | Window | WallArt | FurnitureItem | Room | Stair | Column | TextAnnotation | WalkthroughPoint;
+export interface OptionsSelection {
+  kind: OptionsElementKind;
+  value: OptionsElement;
+}
+
+export interface OptionsContextSnapshot {
+  project: Project;
+  floor: Floor;
+  selection: OptionsSelection | null;
+  selectedIds: string[];
+}
+
 export type StairType = 'straight' | 'l-shaped' | 'u-shaped' | 'spiral';
 
 export interface Stair {

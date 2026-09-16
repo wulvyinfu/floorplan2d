@@ -8,7 +8,8 @@ import { localStore } from './services/datastore';
 import type { CSSProperties, ReactNode } from 'react';
 import { GenerateObjectsError } from './models/types';
 import type { BatchGridPlacementInput } from './models/types';
-import type { CustomPattern, GenerateObjectsInput, GenerateObjectsResult, ObjectAddedEvent, OpeningCatalogConfig, Point, Project, WalkthroughPoint, WalkthroughPointAddedEvent } from './models/types';
+import type { CustomPattern, GenerateObjectsInput, GenerateObjectsResult, ObjectAddedEvent, OpeningCatalogConfig, OptionsContextSnapshot, OptionsElement, Point, Project, WalkthroughPoint, WalkthroughPointAddedEvent } from './models/types';
+import { removeElement, selectedElementId, selectedElementIds, selectedRoomId, updateOptionsElement } from './stores/project';
 import type { Tool } from './stores/project';
 import type { RoomPreset } from './utils/roomPresets';
 import type { RoomTemplate } from './utils/roomTemplates';
@@ -41,6 +42,13 @@ export interface FloorplanEditorModules {
   canvasOverlay?: ReactNode;
 }
 
+export interface OptionsRenderContext extends OptionsContextSnapshot {
+  updateSelected(updates: Partial<OptionsElement>): void;
+  removeSelected(): void;
+  select(id: string | null): void;
+  clearSelection(): void;
+}
+
 export interface FloorplanEditorProps {
   project?: Project;
   dataStore?: DataStore;
@@ -49,6 +57,8 @@ export interface FloorplanEditorProps {
   className?: string;
   style?: CSSProperties;
   modules?: FloorplanEditorModules;
+  /** Completely replaces the built-in right-side properties panel. */
+  optionsRender?: (context: OptionsRenderContext) => ReactNode;
   customPatterns?: CustomPattern[];
   customObjects?: CustomPattern[];
   roomPresets?: readonly RoomPreset[];
@@ -73,6 +83,7 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
     className,
     style,
     modules,
+    optionsRender,
     customPatterns,
     customObjects,
     roomPresets = EMPTY_ROOM_PRESETS,
@@ -92,6 +103,7 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
   const effectiveObjects = customObjects ?? customPatterns;
   const patternsRef = useRef(effectiveObjects);
   const [moduleTargets, setModuleTargets] = useState<Partial<Record<FloorplanEditorModulePosition, HTMLElement>>>({});
+  const [optionsSnapshot, setOptionsSnapshot] = useState<OptionsContextSnapshot | null>(null);
 
   projectRef.current = project;
   callbacksRef.current = { onProjectChange, onObjectAdded, onWalkthroughPointAdded, onReady };
@@ -139,6 +151,10 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
         roomPresets,
         roomTemplates,
         openingCatalog,
+        hideDefaultOptions: !!optionsRender,
+        onOptionsContextChange(context: OptionsContextSnapshot | null) {
+          if (active) setOptionsSnapshot(context);
+        },
         onProjectChange(nextProject: Project) {
           callbacksRef.current.onProjectChange?.(nextProject);
         },
@@ -172,7 +188,7 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
       handleRef.current = null;
       void unmount(instance);
     };
-  }, [autoSave, dataStore]);
+  }, [autoSave, dataStore, !!optionsRender]);
 
   useEffect(() => {
     if (project && handleRef.current?.getProject() !== project) {
@@ -200,6 +216,30 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
     const content = modules?.[position];
     return target && content != null ? [createPortal(content, target, position)] : [];
   });
+  const optionsTarget = moduleTargets.rightPanel;
+  if (optionsRender && optionsTarget && optionsSnapshot) {
+    const selection = optionsSnapshot.selection;
+    const context: OptionsRenderContext = {
+      ...optionsSnapshot,
+      updateSelected(updates) {
+        if (selection) updateOptionsElement(selection.kind, selection.value.id, updates as Record<string, unknown>);
+      },
+      removeSelected() {
+        if (selection) removeElement(selection.value.id);
+      },
+      select(id) {
+        selectedRoomId.set(null);
+        selectedElementId.set(id);
+        selectedElementIds.set(id ? new Set([id]) : new Set());
+      },
+      clearSelection() {
+        selectedRoomId.set(null);
+        selectedElementId.set(null);
+        selectedElementIds.set(new Set());
+      }
+    };
+    portals.push(createPortal(optionsRender(context), optionsTarget, 'options-render'));
+  }
 
   return createElement(
     Fragment,
