@@ -338,7 +338,7 @@ const roomTemplates: RoomTemplate[] = [
 
 ## 9. 漫游标点和路线
 
-用户可在“建造 → 漫游标点”中连续点击画布。标点按照数组顺序自动连接，切换到选择工具后可以选择、拖动和删除标点。
+用户可在“建造 → 漫游标点”中连续点击画布。标点按照数组顺序自动连接，切换到选择工具后可以选择、拖动和删除标点。选中标点后可设置名称和停留时间，并通过“在此标点后添加新标点”直接扩展路线；若有下一点则插入两点中间，否则添加到当前点右侧。
 
 React 可以主动切换工具：
 
@@ -351,7 +351,20 @@ editorRef.current?.setTool('walkthrough');
 ```tsx
 const point = editorRef.current?.addWalkthroughPoint(
   { x: 100, y: 200 },
-  '入口'
+  '入口',
+  2.5 // 停留秒数
+);
+```
+
+更新标点或在指定标点后插入新标点：
+
+```tsx
+editorRef.current?.updateWalkthroughPoint(pointId, { dwellTime: 5 });
+const inserted = editorRef.current?.insertWalkthroughPoint(
+  pointId,
+  { x: 200, y: 200 }, // 可省略；自动选择中点或右侧位置
+  '新增检查点',
+  1
 );
 ```
 
@@ -359,8 +372,8 @@ const point = editorRef.current?.addWalkthroughPoint(
 
 ```tsx
 editorRef.current?.setWalkthroughPoints([
-  { id: 'route-1', x: 100, y: 200, name: '入口' },
-  { id: 'route-2', x: 300, y: 200, name: '机房' },
+  { id: 'route-1', x: 100, y: 200, name: '入口', dwellTime: 2 },
+  { id: 'route-2', x: 300, y: 200, name: '机房', dwellTime: 5 },
   { id: 'route-3', x: 500, y: 350, name: '出口' }
 ]);
 ```
@@ -389,7 +402,7 @@ function handlePointAdded(event: WalkthroughPointAddedEvent) {
 />
 ```
 
-`source` 为：
+`dwellTime` 单位为秒，默认 `0`。画布会在停留时间大于 `0` 时显示秒数。`source` 为：
 
 - `editor`：用户在画布上标点。
 - `api`：通过 `addWalkthroughPoint()` 或 `setWalkthroughPoints()` 添加。
@@ -470,11 +483,21 @@ interface FloorplanEditorHandle {
   ): void;
   generateObjects(input: GenerateObjectsInput): GenerateObjectsResult;
   setTool(tool: Tool): void;
-  addWalkthroughPoint(position: Point, name?: string): WalkthroughPoint;
+  addWalkthroughPoint(position: Point, name?: string, dwellTime?: number): WalkthroughPoint;
   setWalkthroughPoints(
     points: readonly WalkthroughPoint[],
     floorId?: string
   ): void;
+  updateWalkthroughPoint(
+    id: string,
+    updates: Partial<Omit<WalkthroughPoint, 'id'>>
+  ): void;
+  insertWalkthroughPoint(
+    afterPointId: string,
+    position?: Point,
+    name?: string,
+    dwellTime?: number
+  ): WalkthroughPoint | null;
   normalizeCoordinates(floorId?: string): Point | null;
 }
 ```

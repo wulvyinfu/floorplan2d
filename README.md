@@ -340,6 +340,10 @@ editorRef.current?.setWalkthroughPoints([
 
 Routes are stored in each floor's `walkthroughPoints` array, and connections follow the array order. `source` is `editor` or `api`; points already present in the initial project or in `loadProject()` do not trigger the added callback.
 
+漫游标点支持可选的 `dwellTime`（秒）。选中标点可编辑停留时间，并可通过属性面板按钮在其后插入新标点。外部可调用 `updateWalkthroughPoint()` 和 `insertWalkthroughPoint()` 编辑或扩展路径。
+
+Walkthrough points support an optional `dwellTime` in seconds. Select a point to edit its pause duration or insert a new point after it. Integrations can use `updateWalkthroughPoint()` and `insertWalkthroughPoint()` to edit or extend routes.
+
 #### 壁画 / Wall Art
 
 在“建造 → 壁画”中选择工具，然后单击墙体即可挂载壁画。壁画可以沿所属墙体拖动，在属性面板中修改宽度、高度、底边离地高度、画框颜色，并通过“正面/背面”切换贴合墙壁的一面。图片可以从本地上传，或使用 HTTP(S) 图片地址。

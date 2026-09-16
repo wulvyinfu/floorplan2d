@@ -23,8 +23,10 @@ export interface FloorplanEditorHandle {
   setOpeningCatalog(config: OpeningCatalogConfig): void;
   generateObjects(input: GenerateObjectsInput): GenerateObjectsResult;
   setTool(tool: Tool): void;
-  addWalkthroughPoint(position: Point, name?: string): WalkthroughPoint;
+  addWalkthroughPoint(position: Point, name?: string, dwellTime?: number): WalkthroughPoint;
   setWalkthroughPoints(points: readonly WalkthroughPoint[], floorId?: string): void;
+  updateWalkthroughPoint(id: string, updates: Partial<Omit<WalkthroughPoint, 'id'>>): void;
+  insertWalkthroughPoint(afterPointId: string, position?: Point, name?: string, dwellTime?: number): WalkthroughPoint | null;
   normalizeCoordinates(floorId?: string): Point | null;
 }
 
@@ -106,11 +108,13 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
       return handleRef.current.generateObjects(items);
     },
     setTool: (tool) => handleRef.current?.setTool(tool),
-    addWalkthroughPoint: (position, name) => {
+    addWalkthroughPoint: (position, name, dwellTime) => {
       if (!handleRef.current) throw new Error('编辑器尚未初始化，请在 onReady 后调用');
-      return handleRef.current.addWalkthroughPoint(position, name);
+      return handleRef.current.addWalkthroughPoint(position, name, dwellTime);
     },
     setWalkthroughPoints: (points, floorId) => handleRef.current?.setWalkthroughPoints(points, floorId),
+    updateWalkthroughPoint: (id, updates) => handleRef.current?.updateWalkthroughPoint(id, updates),
+    insertWalkthroughPoint: (afterPointId, position, name, dwellTime) => handleRef.current?.insertWalkthroughPoint(afterPointId, position, name, dwellTime) ?? null,
     normalizeCoordinates: (floorId) => handleRef.current?.normalizeCoordinates(floorId) ?? null
   }), []);
 

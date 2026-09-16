@@ -61,6 +61,10 @@ export const localStore: DataStore = {
       if (!floor.furniture) floor.furniture = [];
       if (!floor.stairs) floor.stairs = [];
       if (!floor.columns) floor.columns = [];
+      if (!floor.walkthroughPoints) floor.walkthroughPoints = [];
+      floor.walkthroughPoints.forEach((point: { dwellTime?: number }) => {
+        if (!Number.isFinite(point.dwellTime)) point.dwellTime = 0;
+      });
     }
     return p as Project;
   },

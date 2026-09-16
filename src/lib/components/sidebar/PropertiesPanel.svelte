@@ -1,6 +1,6 @@
 <script lang="ts">
   import { resolveAssetUrl } from '$lib/runtime';
-  import { activeFloor, selectedElementId, selectedRoomId, updateWall, updateDoor, updateWindow, updateWallArt, updateRoom, updateFurniture, detectedRoomsStore, updateStair, updateColumn, updateBackgroundImage, setBackgroundImage, calibrationMode, calibrationPoints, updateTextAnnotation, toggleFurnitureLock } from '$lib/stores/project';
+  import { activeFloor, selectedElementId, selectedRoomId, updateWall, updateDoor, updateWindow, updateWallArt, updateRoom, updateFurniture, detectedRoomsStore, updateStair, updateColumn, updateBackgroundImage, setBackgroundImage, calibrationMode, calibrationPoints, updateTextAnnotation, toggleFurnitureLock, updateWalkthroughPoint, insertWalkthroughPoint } from '$lib/stores/project';
   import { floorMaterials, wallColors } from '$lib/utils/materials';
   import { getCatalogItem } from '$lib/utils/furnitureCatalog';
   import { projectSettings, formatLength, formatArea } from '$lib/stores/settings';
@@ -58,6 +58,7 @@
   let selectedStair = $derived(floor?.stairs?.find(s => s.id === selId) ?? null);
   let selectedColumn = $derived(floor?.columns?.find(c => c.id === selId) ?? null);
   let selectedTextAnnotation = $derived(floor?.textAnnotations?.find(t => t.id === selId) ?? null);
+  let selectedWalkthroughPoint = $derived(floor?.walkthroughPoints?.find(point => point.id === selId) ?? null);
   let hasBgImage = $derived(!!floor?.backgroundImage);
   let selectedRoom = $derived(floor?.rooms?.find(r => r.id === selRoomId) ?? detectedRooms.find(r => r.id === selRoomId) ?? null);
   let wallArtSrcInput = $state('');
@@ -205,6 +206,12 @@
     wallArtSrcInput = '';
     wallArtSrcError = '';
     updateWallArt(selectedWallArt.id, { src: undefined });
+  }
+
+  function addPointAfterSelected() {
+    if (!selectedWalkthroughPoint) return;
+    const point = insertWalkthroughPoint(selectedWalkthroughPoint.id);
+    if (point) selectedElementId.set(point.id);
   }
 
   // Furniture handlers
@@ -368,7 +375,7 @@
     { label: '🧶 地毯', ids: ['carpet-beige', 'carpet-gray'] },
   ];
 
-  let hasSelection = $derived(!!selectedWall || !!selectedDoor || !!selectedWindow || !!selectedWallArt || !!selectedFurniture || !!selectedRoom || !!selectedStair || !!selectedColumn || !!selectedTextAnnotation || hasBgImage);
+  let hasSelection = $derived(!!selectedWall || !!selectedDoor || !!selectedWindow || !!selectedWallArt || !!selectedFurniture || !!selectedRoom || !!selectedStair || !!selectedColumn || !!selectedTextAnnotation || !!selectedWalkthroughPoint || hasBgImage);
 </script>
 
 <div class="w-64 shrink-0 bg-white border-l border-gray-200 flex flex-col overflow-y-auto p-3 fixed right-0 z-40 shadow-lg" class:hidden={!hasSelection} style="top: 48px; bottom: 36px;">
@@ -941,6 +948,35 @@
           <input type="number" value={selectedColumn.rotation} oninput={(e) => updateColumn(selectedColumn!.id, { rotation: Number((e.target as HTMLInputElement).value) })} class="w-full px-2 py-1 border border-gray-200 rounded text-sm" />
         </label>
       {/if}
+    </div>
+  {:else if selectedWalkthroughPoint}
+    <div class="space-y-3">
+      <h3 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+        <span class="w-6 h-6 bg-violet-100 rounded flex items-center justify-center text-xs">●</span>
+        漫游标点
+      </h3>
+      <label class="block">
+        <span class="text-xs text-gray-500">名称</span>
+        <input type="text" value={selectedWalkthroughPoint.name ?? ''} oninput={(e) => updateWalkthroughPoint(selectedWalkthroughPoint!.id, { name: (e.target as HTMLInputElement).value || undefined })} class="w-full px-2 py-1 border border-gray-200 rounded text-sm" />
+      </label>
+      <label class="block">
+        <span class="text-xs text-gray-500">停留时间（秒）</span>
+        <input type="number" min="0" step="0.5" value={selectedWalkthroughPoint.dwellTime ?? 0} oninput={(e) => updateWalkthroughPoint(selectedWalkthroughPoint!.id, { dwellTime: Math.max(0, Number((e.target as HTMLInputElement).value) || 0) })} class="w-full px-2 py-1 border border-gray-200 rounded text-sm" />
+      </label>
+      <div class="grid grid-cols-2 gap-2">
+        <label class="block">
+          <span class="text-xs text-gray-500">X</span>
+          <input type="number" value={Math.round(selectedWalkthroughPoint.x)} oninput={(e) => updateWalkthroughPoint(selectedWalkthroughPoint!.id, { x: Number((e.target as HTMLInputElement).value) })} class="w-full px-2 py-1 border border-gray-200 rounded text-sm" />
+        </label>
+        <label class="block">
+          <span class="text-xs text-gray-500">Y</span>
+          <input type="number" value={Math.round(selectedWalkthroughPoint.y)} oninput={(e) => updateWalkthroughPoint(selectedWalkthroughPoint!.id, { y: Number((e.target as HTMLInputElement).value) })} class="w-full px-2 py-1 border border-gray-200 rounded text-sm" />
+        </label>
+      </div>
+      <button onclick={addPointAfterSelected} class="w-full px-3 py-2 rounded bg-violet-600 text-white text-sm hover:bg-violet-700 transition-colors">
+        在此标点后添加新标点
+      </button>
+      <p class="text-[11px] text-gray-400">若存在下一标点，新标点将插入两点中间；否则添加到当前标点右侧。可继续拖动调整路径。</p>
     </div>
   {:else if selectedTextAnnotation}
     <div class="space-y-3">

@@ -7,7 +7,7 @@
   import type { DataStore } from '$lib/services/datastore';
   import { localStore } from '$lib/services/datastore';
   import { configureRuntime } from '$lib/runtime';
-  import { addWalkthroughPoint as addProjectWalkthroughPoint, currentProject, createDefaultProject, generateObjects as generateProjectObjects, normalizeCoordinates as normalizeProjectCoordinates, selectedTool, setWalkthroughPoints as setProjectWalkthroughPoints } from '$lib/stores/project';
+  import { addWalkthroughPoint as addProjectWalkthroughPoint, currentProject, createDefaultProject, generateObjects as generateProjectObjects, insertWalkthroughPoint as insertProjectWalkthroughPoint, normalizeCoordinates as normalizeProjectCoordinates, selectedTool, setWalkthroughPoints as setProjectWalkthroughPoints, updateWalkthroughPoint as updateProjectWalkthroughPoint } from '$lib/stores/project';
   import type { Tool } from '$lib/stores/project';
   import { registerCustomPattern, removeCustomPattern, setCustomPatterns } from '$lib/utils/customPatterns';
   import TopBar from '$lib/components/toolbar/TopBar.svelte';
@@ -31,8 +31,10 @@
     setOpeningCatalog(config: OpeningCatalogConfig): void;
     generateObjects(input: GenerateObjectsInput): GenerateObjectsResult;
     setTool(tool: Tool): void;
-    addWalkthroughPoint(position: Point, name?: string): WalkthroughPoint;
+    addWalkthroughPoint(position: Point, name?: string, dwellTime?: number): WalkthroughPoint;
     setWalkthroughPoints(points: readonly WalkthroughPoint[], floorId?: string): void;
+    updateWalkthroughPoint(id: string, updates: Partial<Omit<WalkthroughPoint, 'id'>>): void;
+    insertWalkthroughPoint(afterPointId: string, position?: Point, name?: string, dwellTime?: number): WalkthroughPoint | null;
     normalizeCoordinates(floorId?: string): Point | null;
   }
 
@@ -154,10 +156,23 @@
     selectedTool.set(tool);
   }
 
-  export function addWalkthroughPoint(position: Point, name?: string) {
+  export function addWalkthroughPoint(position: Point, name?: string, dwellTime?: number) {
     walkthroughPointSource = 'api';
     try {
-      return addProjectWalkthroughPoint(position, name);
+      return addProjectWalkthroughPoint(position, name, dwellTime);
+    } finally {
+      walkthroughPointSource = 'editor';
+    }
+  }
+
+  export function updateWalkthroughPoint(id: string, updates: Partial<Omit<WalkthroughPoint, 'id'>>) {
+    updateProjectWalkthroughPoint(id, updates);
+  }
+
+  export function insertWalkthroughPoint(afterPointId: string, position?: Point, name?: string, dwellTime?: number) {
+    walkthroughPointSource = 'api';
+    try {
+      return insertProjectWalkthroughPoint(afterPointId, position, name, dwellTime);
     } finally {
       walkthroughPointSource = 'editor';
     }
@@ -251,7 +266,7 @@
       }
     });
 
-    onReady?.({ getProject, loadProject, focus, registerPattern, removePattern, setRoomCatalogs, setOpeningCatalog, generateObjects, setTool, addWalkthroughPoint, setWalkthroughPoints, normalizeCoordinates });
+    onReady?.({ getProject, loadProject, focus, registerPattern, removePattern, setRoomCatalogs, setOpeningCatalog, generateObjects, setTool, addWalkthroughPoint, setWalkthroughPoints, updateWalkthroughPoint, insertWalkthroughPoint, normalizeCoordinates });
     root.addEventListener('keydown', handleKeydown);
 
     return () => {

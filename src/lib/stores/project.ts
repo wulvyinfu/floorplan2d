@@ -578,11 +578,41 @@ export function removeElement(id: string) {
   }, 'Deleted element');
 }
 
-export function addWalkthroughPoint(position: Point, name?: string): WalkthroughPoint {
-  const point: WalkthroughPoint = { id: uid(), ...position, name };
+export function addWalkthroughPoint(position: Point, name?: string, dwellTime = 0): WalkthroughPoint {
+  const point: WalkthroughPoint = { id: uid(), ...position, name, dwellTime: Math.max(0, dwellTime) };
   mutate((floor) => {
     floor.walkthroughPoints = [...(floor.walkthroughPoints ?? []), point];
   }, 'Added walkthrough point');
+  return point;
+}
+
+export function updateWalkthroughPoint(id: string, updates: Partial<Omit<WalkthroughPoint, 'id'>>): void {
+  mutate((floor) => {
+    const point = floor.walkthroughPoints?.find((item) => item.id === id);
+    if (!point) return;
+    Object.assign(point, updates);
+    point.dwellTime = Math.max(0, Number(point.dwellTime) || 0);
+  }, 'Updated walkthrough point');
+}
+
+/** Insert a point immediately after an existing route point. */
+export function insertWalkthroughPoint(afterPointId: string, position?: Point, name?: string, dwellTime = 0): WalkthroughPoint | null {
+  const project = get(currentProject);
+  if (!project) return null;
+  const floor = project.floors.find((item) => item.id === project.activeFloorId);
+  const points = floor?.walkthroughPoints ?? [];
+  const index = points.findIndex((item) => item.id === afterPointId);
+  if (!floor || index < 0) return null;
+  const current = points[index];
+  const next = points[index + 1];
+  const target = position ?? (next
+    ? { x: (current.x + next.x) / 2, y: (current.y + next.y) / 2 }
+    : { x: current.x + 100, y: current.y });
+  const point: WalkthroughPoint = { id: uid(), ...target, name, dwellTime: Math.max(0, dwellTime) };
+  snapshot('Inserted walkthrough point');
+  floor.walkthroughPoints = [...points.slice(0, index + 1), point, ...points.slice(index + 1)];
+  project.updatedAt = new Date();
+  currentProject.set({ ...project });
   return point;
 }
 
@@ -604,7 +634,7 @@ export function setWalkthroughPoints(points: readonly WalkthroughPoint[], floorI
   snapshot('Updated walkthrough path');
   const targetId = floorId ?? project.activeFloorId;
   project.floors = project.floors.map((floor) => floor.id === targetId
-    ? { ...floor, walkthroughPoints: points.map((point) => ({ ...point })) }
+    ? { ...floor, walkthroughPoints: points.map((point) => ({ ...point, dwellTime: Math.max(0, Number(point.dwellTime) || 0) })) }
     : floor);
   project.updatedAt = new Date();
   currentProject.set({ ...project });

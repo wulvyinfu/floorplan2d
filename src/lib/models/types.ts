@@ -3,6 +3,8 @@ export interface Point { x: number; y: number; }
 export interface WalkthroughPoint extends Point {
   id: string;
   name?: string;
+  /** Seconds to pause at this point during playback. */
+  dwellTime?: number;
 }
 
 export interface Wall {

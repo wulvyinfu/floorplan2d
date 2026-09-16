@@ -130,6 +130,11 @@ export function drawWalkthroughPath(cs: CanvasState, points: readonly Walkthroug
       ctx.font = '12px sans-serif';
       ctx.fillText(point.name, screen.x, screen.y + 20);
     }
+    if ((point.dwellTime ?? 0) > 0) {
+      ctx.fillStyle = '#6d28d9';
+      ctx.font = '10px sans-serif';
+      ctx.fillText(`${point.dwellTime}s`, screen.x, screen.y - 16);
+    }
   });
   ctx.restore();
 }
