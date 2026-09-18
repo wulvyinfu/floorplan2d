@@ -451,7 +451,7 @@
               <span class="text-xs text-gray-500">自定义：</span>
               <input type="color" value={sideColor} oninput={(e) => { if (selectedWall) updateWall(selectedWall.id, { interiorColor: (e.target as HTMLInputElement).value }); }} class="w-8 h-6 rounded border border-gray-200 cursor-pointer" />
             </label>
-            <!-- <span class="text-xs text-gray-500">纹理</span>
+            <span class="text-xs text-gray-500">纹理</span>
             <div class="grid grid-cols-3 gap-1.5">
               <button
                 class="p-1.5 rounded-md border-2 text-[10px] text-center h-14 {!sideTex ? 'border-blue-500 ring-1 ring-blue-200' : 'border-gray-200 hover:border-gray-300'}"
@@ -465,7 +465,7 @@
                   onclick={() => { if (selectedWall) updateWall(selectedWall.id, { interiorTexture: wc.id, interiorColor: wc.color }); }}
                 ><span class="bg-white/80 backdrop-blur-sm rounded px-1 py-0.5 mb-0.5 text-gray-700">{localizedWallName(wc.id, wc.name)}</span></button>
               {/each}
-            </div> -->
+            </div>
           </div>
         {:else}
           {@const sideColor = selectedWall.exteriorColor || selectedWall.color}
@@ -486,7 +486,7 @@
               <span class="text-xs text-gray-500">自定义：</span>
               <input type="color" value={sideColor} oninput={(e) => { if (selectedWall) updateWall(selectedWall.id, { exteriorColor: (e.target as HTMLInputElement).value }); }} class="w-8 h-6 rounded border border-gray-200 cursor-pointer" />
             </label>
-            <!-- <span class="text-xs text-gray-500">纹理</span>
+            <span class="text-xs text-gray-500">纹理</span>
             <div class="grid grid-cols-3 gap-1.5">
               <button
                 class="p-1.5 rounded-md border-2 text-[10px] text-center h-14 {!sideTex ? 'border-blue-500 ring-1 ring-blue-200' : 'border-gray-200 hover:border-gray-300'}"
@@ -500,7 +500,7 @@
                   onclick={() => { if (selectedWall) updateWall(selectedWall.id, { exteriorTexture: wc.id, exteriorColor: wc.color }); }}
                 ><span class="bg-white/80 backdrop-blur-sm rounded px-1 py-0.5 mb-0.5 text-gray-700">{localizedWallName(wc.id, wc.name)}</span></button>
               {/each}
-            </div> -->
+            </div>
           </div>
         {/if}
       </div>
@@ -539,7 +539,7 @@
           <option value="bifold">折叠门</option>
         </select>
       </label>
-      <!-- <label class="block">
+      <label class="block">
         <span class="text-xs text-gray-500">铰链侧</span>
         <div class="flex gap-2">
           <button onclick={() => { if (selectedDoor) updateDoor(selectedDoor.id, { swingDirection: 'left' }); }} class="flex-1 px-2 py-1.5 border rounded text-sm transition-colors {selectedDoor?.swingDirection === 'left' ? 'bg-blue-100 border-blue-400 text-blue-700' : 'border-gray-200 hover:bg-gray-50'}">左</button>
@@ -552,7 +552,7 @@
           <button onclick={() => { if (selectedDoor) updateDoor(selectedDoor.id, { flipSide: false }); }} class="flex-1 px-2 py-1.5 border rounded text-sm transition-colors {!(selectedDoor?.flipSide) ? 'bg-blue-100 border-blue-400 text-blue-700' : 'border-gray-200 hover:bg-gray-50'}">向内</button>
           <button onclick={() => { if (selectedDoor) updateDoor(selectedDoor.id, { flipSide: true }); }} class="flex-1 px-2 py-1.5 border rounded text-sm transition-colors {selectedDoor?.flipSide ? 'bg-blue-100 border-blue-400 text-blue-700' : 'border-gray-200 hover:bg-gray-50'}">向外</button>
         </div>
-      </label> -->
+      </label>
     </div>
 
   {:else if selectedWindow}
@@ -828,7 +828,7 @@
           <input type="color" value={selectedRoom.color ?? '#ffffff'} oninput={(e) => onRoomColor((e.target as HTMLInputElement).value)} class="w-8 h-6 rounded border border-gray-200 cursor-pointer" />
         </div>
       </div>
-      <!-- <div>
+      <div>
         <div class="flex items-center gap-1 mb-2">
           <span class="text-xs text-gray-500">地板材质</span>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400">
@@ -862,7 +862,7 @@
             </div>
           {/each}
         </div>
-      </div> -->
+      </div>
     </div>
 
   {:else if selectedStair}
