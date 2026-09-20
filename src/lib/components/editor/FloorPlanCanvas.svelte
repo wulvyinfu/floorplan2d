@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { resolvedTheme } from '$lib/stores/theme';
+  $effect(() => { $resolvedTheme; markDirty(); });
   import { pendingBatchGridPlacement, generateObjects, cancelObjectGridPlacement } from '$lib/stores/project';
   import { activeFloor, selectedTool, selectedElementId, selectedElementIds, selectedRoomId, addWall, addDoor, addWindow, addWallArt, updateWall, moveWallEndpoint, updateDoor, updateWindow, updateWallArt, addFurniture, moveFurniture, commitFurnitureMove, rotateFurniture, setFurnitureRotation, scaleFurniture, removeElement, placingFurnitureId, placingRotation, placingDoorType, placingWindowType, detectedRoomsStore, duplicateDoor, duplicateWindow, duplicateWallArt, duplicateFurniture, duplicateWall, moveWallParallel, splitWall, snapEnabled, placingStair, addStair, moveStair, updateStair, placingColumn, placingColumnShape, addColumn, moveColumn, updateColumn, calibrationMode, calibrationPoints, updateBackgroundImage, setBackgroundImage, canvasZoom, canvasCamX, canvasCamY, panMode, showFurnitureStore, addGuide, moveGuide, removeGuide, beginUndoGroup, endUndoGroup, layerVisibility, updateRoom, addMeasurement, removeMeasurement, addAnnotation, removeAnnotation, updateAnnotation, addTextAnnotation, removeTextAnnotation, updateTextAnnotation, moveTextAnnotation, toggleFurnitureLock, createGroup, ungroupElements, findGroupForElement, addWalkthroughPoint, moveWalkthroughPoint } from '$lib/stores/project';
   import type { Point, Wall, Door, Window as Win, WallArt, FurnitureItem, Stair, Column, GuideLine, Measurement, Annotation, TextAnnotation, BatchGridPlacementInput } from '$lib/models/types';
@@ -414,7 +416,7 @@
     if (step < 4) return;
 
     // Minor grid
-    ctx.strokeStyle = '#e8eaed';
+    ctx.strokeStyle = $resolvedTheme === 'dark' ? '#273449' : '#e8eaed';
     ctx.lineWidth = 0.5;
     const offX = (width / 2 - camX * zoom) % step;
     const offY = (height / 2 - camY * zoom) % step;
@@ -428,7 +430,7 @@
     // Major grid (every 100cm / 1m)
     const majorStep = 100 * zoom;
     if (majorStep >= 20) {
-      ctx.strokeStyle = '#d1d5db';
+      ctx.strokeStyle = $resolvedTheme === 'dark' ? '#475569' : '#d1d5db';
       ctx.lineWidth = 0.8;
       const mOffX = (width / 2 - camX * zoom) % majorStep;
       const mOffY = (height / 2 - camY * zoom) % majorStep;
@@ -1113,7 +1115,7 @@
     if (!canvasDirty) { requestAnimationFrame(draw); return; }
     canvasDirty = false;
     ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = '#f8f9fa';
+    ctx.fillStyle = $resolvedTheme === 'dark' ? '#0f172a' : '#f8f9fa';
     ctx.fillRect(0, 0, width, height);
     drawGrid();
     if (layerVis.guides) drawGuides();

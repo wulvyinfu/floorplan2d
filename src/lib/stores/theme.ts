@@ -1,10 +1,16 @@
 import { writable } from 'svelte/store';
 
 export type ThemePreference = 'light' | 'dark' | 'system';
+export const resolvedTheme = writable<'light' | 'dark'>('light');
 
 function getStoredTheme(): ThemePreference {
   if (typeof window === 'undefined') return 'system';
-  return (localStorage.getItem('o3d_theme') as ThemePreference) || 'system';
+  try {
+    const value = localStorage.getItem('o3d_theme');
+    return value === 'light' || value === 'dark' ? value : 'system';
+  } catch {
+    return 'system';
+  }
 }
 
 function resolveTheme(pref: ThemePreference): 'light' | 'dark' {
@@ -16,6 +22,7 @@ function resolveTheme(pref: ThemePreference): 'light' | 'dark' {
 }
 
 function applyTheme(resolved: 'light' | 'dark') {
+  resolvedTheme.set(resolved);
   if (typeof document === 'undefined') return;
   document.documentElement.classList.toggle('dark', resolved === 'dark');
 }
@@ -44,7 +51,7 @@ function createThemeStore() {
     set(value: ThemePreference) {
       set(value);
       if (typeof window !== 'undefined') {
-        localStorage.setItem('o3d_theme', value);
+        try { localStorage.setItem('o3d_theme', value); } catch {}
       }
       applyTheme(resolveTheme(value));
     },

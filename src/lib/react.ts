@@ -7,6 +7,7 @@ import { createDefaultFloor, createDefaultProject } from './stores/project';
 import { localStore } from './services/datastore';
 import type { CSSProperties, ReactNode } from 'react';
 import { GenerateObjectsError } from './models/types';
+import { themePreference, type ThemePreference } from './stores/theme';
 import type { BatchGridPlacementInput } from './models/types';
 import type { CustomPattern, GenerateObjectsInput, GenerateObjectsResult, ObjectAddedEvent, OpeningCatalogConfig, OptionsContextSnapshot, OptionsElement, Point, Project, WalkthroughPoint, WalkthroughPointAddedEvent } from './models/types';
 import { removeElement, selectedElementId, selectedElementIds, selectedRoomId, updateOptionsElement } from './stores/project';
@@ -50,6 +51,7 @@ export interface OptionsRenderContext extends OptionsContextSnapshot {
 }
 
 export interface FloorplanEditorProps {
+  theme?: ThemePreference;
   project?: Project;
   dataStore?: DataStore;
   autoSave?: boolean;
@@ -83,6 +85,7 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
     className,
     style,
     modules,
+    theme,
     optionsRender,
     customPatterns,
     customObjects,
@@ -151,6 +154,7 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
         roomPresets,
         roomTemplates,
         openingCatalog,
+        theme,
         hideDefaultOptions: !!optionsRender,
         onOptionsContextChange(context: OptionsContextSnapshot | null) {
           if (active) setOptionsSnapshot(context);
@@ -189,6 +193,10 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
       void unmount(instance);
     };
   }, [autoSave, dataStore, !!optionsRender]);
+
+  useEffect(() => {
+    if (theme) themePreference.set(theme);
+  }, [theme]);
 
   useEffect(() => {
     if (project && handleRef.current?.getProject() !== project) {
@@ -252,6 +260,7 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
 export { createDefaultFloor, createDefaultProject, localStore };
 export { GenerateObjectsError };
 export type { DataStore } from './services/datastore';
+export type { ThemePreference } from './stores/theme';
 export type * from './models/types';
 export type { RoomPreset } from './utils/roomPresets';
 export type { FurniturePlacement, RoomTemplate } from './utils/roomTemplates';

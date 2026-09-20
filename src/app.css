@@ -1,6 +1,7 @@
 @import "tailwindcss";
+@import "./reset.css";
 
-@custom-variant dark (&.dark);
+@custom-variant dark (&:where(.dark, .dark *));
 
 html, body {
   margin: 0;

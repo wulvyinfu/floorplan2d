@@ -7,6 +7,7 @@
   import { exportDXF, exportDWG } from '$lib/utils/cadExport';
   import { importRoomPlan } from '$lib/utils/roomplanImport';
   import SettingsDialog from './SettingsDialog.svelte';
+  import { resolvedTheme, themePreference } from '$lib/stores/theme';
   import AreaSummaryPanel from '$lib/components/sidebar/AreaSummaryPanel.svelte';
   import { saveState, lastSavedAt, manualSave, initAutoSave } from '$lib/stores/saveStatus';
   import { initVersionHistory, snapshotOnAction } from '$lib/stores/versionHistory';
@@ -356,6 +357,12 @@
   </button>
 
   <!-- Settings button -->
+  <button
+    class="px-2 py-1 rounded hover:bg-white/10 text-white"
+    title={$resolvedTheme === 'dark' ? '切换浅色模式' : '切换深色模式'}
+    aria-label={$resolvedTheme === 'dark' ? '切换浅色模式' : '切换深色模式'}
+    onclick={() => themePreference.set($resolvedTheme === 'dark' ? 'light' : 'dark')}
+  >{$resolvedTheme === 'dark' ? '☀' : '☾'}</button>
   <button
     onclick={() => settingsOpen = true}
     class="px-2 py-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors"

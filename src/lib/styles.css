@@ -1,5 +1,7 @@
 @import "tailwindcss";
+@import "../reset.css";
 @source "./**/*.{svelte,ts}";
+@custom-variant dark (&:where(.dark, .dark *));
 
 .floorplan-editor {
   color: #0f172a;
@@ -8,3 +10,18 @@
   min-height: 32rem;
   width: 100%;
 }
+
+.floorplan-editor.dark { color-scheme: dark; color: #e2e8f0; background: #111827; }
+.floorplan-editor.dark .bg-white { background-color: #1f2937 !important; }
+.floorplan-editor.dark :is(.bg-gray-50, .bg-slate-50) { background-color: #111827 !important; }
+.floorplan-editor.dark :is(.bg-gray-100, .bg-slate-100) { background-color: #1e293b !important; }
+.floorplan-editor.dark :is(.bg-gray-200, .bg-gray-300) { background-color: #374151 !important; }
+.floorplan-editor.dark :is(.text-gray-800, .text-slate-800) { color: #f3f4f6 !important; }
+.floorplan-editor.dark :is(.text-gray-700, .text-gray-600, .text-slate-700) { color: #d1d5db !important; }
+.floorplan-editor.dark :is(.text-gray-500, .text-gray-400) { color: #9ca3af !important; }
+.floorplan-editor.dark :is(.border-gray-100, .border-gray-200, .border-gray-300, .border-slate-200) { border-color: #475569 !important; }
+.floorplan-editor.dark :is(input, textarea, select, kbd) { background-color: #374151; color: #f3f4f6; border-color: #4b5563; }
+.floorplan-editor.dark :is(.hover\:bg-gray-50, .hover\:bg-gray-100):hover { background-color: #374151 !important; }
+.floorplan-editor.dark :is(.bg-blue-50, .bg-blue-100) { background-color: #1e3a5f !important; }
+.floorplan-editor.dark :is(.text-blue-500, .text-blue-600) { color: #60a5fa !important; }
+.floorplan-editor.dark .bg-white\/90 { background-color: rgb(31 41 55 / 90%) !important; }

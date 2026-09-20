@@ -9,6 +9,7 @@
   import type { DataStore } from '$lib/services/datastore';
   import { localStore } from '$lib/services/datastore';
   import { configureRuntime } from '$lib/runtime';
+  import { resolvedTheme, themePreference, type ThemePreference } from '$lib/stores/theme';
   import { activeFloor, selectedElementId, selectedElementIds, selectedRoomId } from '$lib/stores/project';
   import { addWalkthroughPoint as addProjectWalkthroughPoint, currentProject, createDefaultProject, generateObjects as generateProjectObjects, insertWalkthroughPoint as insertProjectWalkthroughPoint, normalizeCoordinates as normalizeProjectCoordinates, selectedTool, setWalkthroughPoints as setProjectWalkthroughPoints, updateWalkthroughPoint as updateProjectWalkthroughPoint } from '$lib/stores/project';
   import type { Tool } from '$lib/stores/project';
@@ -46,6 +47,7 @@
 
   interface Props {
     project?: Project;
+    theme?: ThemePreference;
     dataStore?: DataStore;
     autoSave?: boolean;
     height?: string;
@@ -74,6 +76,7 @@
     onWalkthroughPointAdded,
     onReady,
     onModuleTarget,
+    theme,
     hideDefaultOptions = false,
     onOptionsContextChange,
     customPatterns,
@@ -81,6 +84,10 @@
     roomTemplates = [],
     openingCatalog = {}
   }: Props = $props();
+
+  $effect(() => {
+    if (theme) themePreference.set(theme);
+  });
 
   function resolveOptionsSelection(): OptionsSelection | null {
     const floor = $activeFloor;
@@ -323,6 +330,7 @@
 <div
   bind:this={root}
   class="floorplan-editor relative flex flex-col overflow-hidden bg-white {className}"
+  class:dark={$resolvedTheme === 'dark'}
   style:height
   tabindex="-1"
   aria-label="户型图编辑器"
