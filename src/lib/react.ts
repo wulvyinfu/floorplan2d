@@ -32,6 +32,8 @@ export interface FloorplanEditorHandle {
   updateWalkthroughPoint(id: string, updates: Partial<Omit<WalkthroughPoint, 'id'>>): void;
   insertWalkthroughPoint(afterPointId: string, position?: Point, name?: string, dwellTime?: number): WalkthroughPoint | null;
   normalizeCoordinates(floorId?: string): Point | null;
+  copySelection(): Promise<boolean>;
+  pasteSelection(offset?: Point): Promise<string[]>;
 }
 
 export type FloorplanEditorModulePosition = 'toolbar' | 'leftPanel' | 'rightPanel' | 'canvasOverlay';
@@ -136,7 +138,9 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
     setWalkthroughPoints: (points, floorId) => handleRef.current?.setWalkthroughPoints(points, floorId),
     updateWalkthroughPoint: (id, updates) => handleRef.current?.updateWalkthroughPoint(id, updates),
     insertWalkthroughPoint: (afterPointId, position, name, dwellTime) => handleRef.current?.insertWalkthroughPoint(afterPointId, position, name, dwellTime) ?? null,
-    normalizeCoordinates: (floorId) => handleRef.current?.normalizeCoordinates(floorId) ?? null
+    normalizeCoordinates: (floorId) => handleRef.current?.normalizeCoordinates(floorId) ?? null,
+    copySelection: () => handleRef.current?.copySelection() ?? Promise.resolve(false),
+    pasteSelection: (offset) => handleRef.current?.pasteSelection(offset) ?? Promise.resolve([])
   }), []);
 
   useEffect(() => {

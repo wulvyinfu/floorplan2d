@@ -340,6 +340,15 @@ const roomTemplates: RoomTemplate[] = [
 
 ## 自定义右侧属性操作栏
 
+### 选中元素复制粘贴
+
+```tsx
+const copied = await editorRef.current?.copySelection();
+const newIds = await editorRef.current?.pasteSelection({ x: 50, y: 50 });
+```
+
+编辑器同时支持 `Ctrl/Cmd+C` 和 `Ctrl/Cmd+V`。复制内容以 `FLOORPLAN2D_CLIPBOARD_V1` 开头的 JSON 代码写入系统粘贴板，支持跨编辑器实例粘贴。默认每次粘贴偏移 `{ x: 30, y: 30 }` 厘米；外部调用可指定偏移量。支持墙体、门窗、壁画、家具、楼梯、柱、文本标注和漫游标点，多选粘贴作为一次撤销操作。墙体和墙上挂件一起复制时会自动重建关联。
+
 ### 深色模式
 
 ```tsx

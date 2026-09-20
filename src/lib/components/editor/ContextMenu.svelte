@@ -77,7 +77,7 @@
     role="menu"
   >
     {#if targetType === 'furniture'}
-      <button class="ctx-item" role="menuitem" onclick={() => clickItem('duplicate-furniture')}>
+      <button class="ctx-item" role="menuitem" onclick={() => clickItem('copy')}>
         <span class="ctx-icon">📋</span> 复制
       </button>
       <button class="ctx-item" role="menuitem" onclick={() => clickItem('rotate-furniture-90')}>
@@ -107,6 +107,7 @@
       </button>
 
     {:else if targetType === 'wall'}
+      <button class="ctx-item" role="menuitem" onclick={() => clickItem('copy')}><span class="ctx-icon">📋</span> 复制</button>
       <button class="ctx-item" role="menuitem" onclick={() => clickItem('split-wall')}>
         <span class="ctx-icon">✂️</span> 拆分墙体
       </button>
@@ -123,6 +124,7 @@
       </button>
 
     {:else if targetType === 'door' || targetType === 'window'}
+      <button class="ctx-item" role="menuitem" onclick={() => clickItem('copy')}><span class="ctx-icon">📋</span> 复制</button>
       <button class="ctx-item" role="menuitem" onclick={() => clickItem('properties')}>
         <span class="ctx-icon">⚙️</span> 属性
       </button>
@@ -144,12 +146,10 @@
       </button>
 
     {:else if targetType === 'canvas'}
-      {#if clipboard}
-        <button class="ctx-item" role="menuitem" onclick={() => clickItem('paste')}>
-          <span class="ctx-icon">📋</span> 粘贴
-        </button>
-        <div class="ctx-sep"></div>
-      {/if}
+      <button class="ctx-item" role="menuitem" onclick={() => clickItem('paste')}>
+        <span class="ctx-icon">📋</span> 粘贴
+      </button>
+      <div class="ctx-sep"></div>
       <button class="ctx-item" role="menuitem" onclick={() => clickItem('select-all')}>
         <span class="ctx-icon">⬜</span> 全选
       </button>

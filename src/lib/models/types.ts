@@ -302,6 +302,21 @@ export interface Floor {
   walkthroughPoints?: WalkthroughPoint[];
 }
 
+export type ClipboardElement =
+  | { type: 'wall'; data: Wall }
+  | { type: 'door'; data: Door }
+  | { type: 'window'; data: Window }
+  | { type: 'wall-art'; data: WallArt }
+  | { type: 'furniture'; data: FurnitureItem }
+  | { type: 'stair'; data: Stair }
+  | { type: 'column'; data: Column }
+  | { type: 'text-annotation'; data: TextAnnotation }
+  | { type: 'walkthrough-point'; data: WalkthroughPoint };
+
+export interface ClipboardPayload {
+  items: ClipboardElement[];
+}
+
 export interface WalkthroughPointAddedEvent {
   point: WalkthroughPoint;
   floor: Floor;

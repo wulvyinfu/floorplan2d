@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { resolvedTheme } from '$lib/stores/theme';
   $effect(() => { $resolvedTheme; markDirty(); });
-  import { pendingBatchGridPlacement, generateObjects, cancelObjectGridPlacement } from '$lib/stores/project';
+  import { pendingBatchGridPlacement, generateObjects, cancelObjectGridPlacement, copySelectedElements, elementClipboard, parseElementClipboard, pasteCopiedElements, serializeElementClipboard } from '$lib/stores/project';
   import { activeFloor, selectedTool, selectedElementId, selectedElementIds, selectedRoomId, addWall, addDoor, addWindow, addWallArt, updateWall, moveWallEndpoint, updateDoor, updateWindow, updateWallArt, addFurniture, moveFurniture, commitFurnitureMove, rotateFurniture, setFurnitureRotation, scaleFurniture, removeElement, placingFurnitureId, placingRotation, placingDoorType, placingWindowType, detectedRoomsStore, duplicateDoor, duplicateWindow, duplicateWallArt, duplicateFurniture, duplicateWall, moveWallParallel, splitWall, snapEnabled, placingStair, addStair, moveStair, updateStair, placingColumn, placingColumnShape, addColumn, moveColumn, updateColumn, calibrationMode, calibrationPoints, updateBackgroundImage, setBackgroundImage, canvasZoom, canvasCamX, canvasCamY, panMode, showFurnitureStore, addGuide, moveGuide, removeGuide, beginUndoGroup, endUndoGroup, layerVisibility, updateRoom, addMeasurement, removeMeasurement, addAnnotation, removeAnnotation, updateAnnotation, addTextAnnotation, removeTextAnnotation, updateTextAnnotation, moveTextAnnotation, toggleFurnitureLock, createGroup, ungroupElements, findGroupForElement, addWalkthroughPoint, moveWalkthroughPoint } from '$lib/stores/project';
   import type { Point, Wall, Door, Window as Win, WallArt, FurnitureItem, Stair, Column, GuideLine, Measurement, Annotation, TextAnnotation, BatchGridPlacementInput } from '$lib/models/types';
   import type { Floor, Room } from '$lib/models/types';
@@ -203,9 +203,6 @@
 
   // Multi-select drag state
   let draggingMultiSelect: { startMousePos: Point; origPositions: Map<string, { start?: Point; end?: Point; position?: Point }> } | null = $state(null);
-
-  // Clipboard for copy/paste (Ctrl+C / Ctrl+V)
-  let clipboard: { items: Array<{ type: 'furniture' | 'door' | 'window' | 'wall-art'; data: any }> } | null = $state(null);
 
   // Context menu state
   let ctxMenuVisible = $state(false);
@@ -1812,10 +1809,15 @@
       }
     });
 
-    // Clipboard image paste handler — only if no internal furniture clipboard
     function handlePaste(e: ClipboardEvent) {
       if (!e.clipboardData) return;
-      if (clipboard && clipboard.items.length > 0) return; // internal clipboard takes priority
+      const clipboardText = e.clipboardData.getData('text/plain');
+      const payload = parseElementClipboard(clipboardText);
+      if (payload) {
+        e.preventDefault();
+        pasteCopiedElements({ x: 30, y: 30 }, payload);
+        return;
+      }
       const files = e.clipboardData.files;
       for (let i = 0; i < files.length; i++) {
         if (files[i].type.startsWith('image/')) {
@@ -3019,6 +3021,9 @@
 
   function onKeyDown(e: KeyboardEvent) {
     shiftDown = e.shiftKey;
+    const keyTarget = e.target as HTMLElement | null;
+    const isEditingInput = keyTarget?.tagName === 'INPUT' || keyTarget?.tagName === 'TEXTAREA' || keyTarget?.tagName === 'SELECT' || keyTarget?.isContentEditable;
+    if (isEditingInput && (e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'c' || e.key === 'v' || e.key === 'x')) return;
     if (e.code === 'Space') { spaceDown = true; e.preventDefault(); return; }
 
     // Delete selected guide line
@@ -3131,73 +3136,19 @@
 
     // Copy (Ctrl+C / Cmd+C)
     if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey) {
-      if (currentFloor) {
-        const items: Array<{ type: 'furniture' | 'door' | 'window' | 'wall-art'; data: any }> = [];
-        const idsToCheck = currentSelectedIds.size > 0 ? currentSelectedIds : (currentSelectedId ? new Set([currentSelectedId]) : new Set<string>());
-        for (const id of idsToCheck) {
-          const fi = currentFloor.furniture.find(f => f.id === id);
-          if (fi) { items.push({ type: 'furniture', data: { ...fi } }); continue; }
-          const door = currentFloor.doors.find(d => d.id === id);
-          if (door) { items.push({ type: 'door', data: { ...door } }); continue; }
-          const win = currentFloor.windows.find(w => w.id === id);
-          if (win) { items.push({ type: 'window', data: { ...win } }); continue; }
-          const wallArt = currentFloor.wallArt?.find(item => item.id === id);
-          if (wallArt) { items.push({ type: 'wall-art', data: { ...wallArt } }); continue; }
-        }
-        if (items.length > 0) {
-          clipboard = { items };
-          e.preventDefault();
-          return;
-        }
+      const ids = currentSelectedIds.size > 0 ? [...currentSelectedIds] : (currentSelectedId ? [currentSelectedId] : []);
+      if (selectedTextAnnotationId && !ids.includes(selectedTextAnnotationId)) ids.push(selectedTextAnnotationId);
+      const payload = copySelectedElements(ids);
+      if (payload) {
+        e.preventDefault();
+        void navigator.clipboard.writeText(serializeElementClipboard(payload));
+        return;
       }
     }
 
     // Paste (Ctrl+V / Cmd+V)
     if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey) {
-      if (clipboard && clipboard.items.length > 0 && currentFloor) {
-        e.preventDefault();
-        beginUndoGroup();
-        const newIds: string[] = [];
-        // We need to duplicate each clipboard item by its stored ID
-        // For successive pastes, update clipboard to point to the new IDs
-        const newItems: Array<{ type: 'furniture' | 'door' | 'window' | 'wall-art'; data: any }> = [];
-        for (const item of clipboard.items) {
-          let newId: string | null = null;
-          if (item.type === 'furniture') {
-            newId = duplicateFurniture(item.data.id);
-          } else if (item.type === 'door') {
-            newId = duplicateDoor(item.data.id);
-          } else if (item.type === 'window') {
-            newId = duplicateWindow(item.data.id);
-          } else if (item.type === 'wall-art') {
-            newId = duplicateWallArt(item.data.id);
-          }
-          if (newId) {
-            newIds.push(newId);
-            // Update clipboard to reference the newly created element for successive pastes
-            const newData = item.type === 'furniture'
-              ? currentFloor.furniture.find(f => f.id === newId)
-              : item.type === 'door'
-              ? currentFloor.doors.find(d => d.id === newId)
-              : item.type === 'window'
-              ? currentFloor.windows.find(w => w.id === newId)
-              : currentFloor.wallArt?.find(wallArt => wallArt.id === newId);
-            newItems.push({ type: item.type, data: newData ? { ...newData } : { ...item.data, id: newId } });
-          }
-        }
-        // Update clipboard for successive pastes
-        if (newItems.length > 0) clipboard = { items: newItems };
-        endUndoGroup();
-        if (newIds.length === 1) {
-          selectedElementId.set(newIds[0]);
-          selectedElementIds.set(new Set());
-        } else if (newIds.length > 1) {
-          selectedElementIds.set(new Set(newIds));
-          selectedElementId.set(newIds[0]);
-        }
-        return;
-      }
-
+      return;
     }
 
     // Global shortcuts
@@ -3514,8 +3465,16 @@
 
       // Canvas actions
       case 'paste':
-        // Trigger paste via synthetic keyboard event
-        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', ctrlKey: true, metaKey: true }));
+        void navigator.clipboard.readText().then((text) => {
+          const payload = parseElementClipboard(text);
+          if (payload) pasteCopiedElements({ x: 30, y: 30 }, payload);
+        });
+        break;
+      case 'copy':
+        {
+          const payload = copySelectedElements(currentSelectedIds.size ? [...currentSelectedIds] : (id ? [id] : []));
+          if (payload) void navigator.clipboard.writeText(serializeElementClipboard(payload));
+        }
         break;
       case 'select-all':
         if (currentFloor) {
@@ -3951,7 +3910,7 @@
     targetWall={ctxMenuWall}
     targetFurniture={ctxMenuFurniture}
     targetRoom={ctxMenuRoom}
-    clipboard={clipboard}
+    clipboard={$elementClipboard}
     onclose={() => { ctxMenuVisible = false; }}
     onaction={handleContextMenuAction}
   />

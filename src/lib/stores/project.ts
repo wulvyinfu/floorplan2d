@@ -1,7 +1,7 @@
 import { writable, derived, get } from 'svelte/store';
 import { GenerateObjectsError } from '$lib/models/types';
 import type { BatchGridPlacementInput } from '$lib/models/types';
-import type { Project, Floor, Wall, Door, Window as Win, WallArt, FurnitureItem, Point, Stair, Column, BackgroundImage, GuideLine, ElementGroup, CustomPattern, ExternalObjectInput, GenerateObjectsInput, GenerateObjectsResult, WalkthroughPoint } from '$lib/models/types';
+import type { Project, Floor, Wall, Door, Window as Win, WallArt, FurnitureItem, Point, Stair, Column, BackgroundImage, GuideLine, ElementGroup, CustomPattern, ExternalObjectInput, GenerateObjectsInput, GenerateObjectsResult, WalkthroughPoint, ClipboardElement, ClipboardPayload } from '$lib/models/types';
 
 
 function uid(): string {
@@ -42,7 +42,93 @@ export const showFurnitureStore = writable<boolean>(true);
 export const selectedElementId = writable<string | null>(null);
 /** Multi-select: set of element IDs currently selected (used alongside selectedElementId for marquee/shift-click) */
 export const selectedElementIds = writable<Set<string>>(new Set());
+export const elementClipboard = writable<ClipboardPayload | null>(null);
 export const viewMode = writable<'2d' | '3d'>('2d');
+export const ELEMENT_CLIPBOARD_PREFIX = 'FLOORPLAN2D_CLIPBOARD_V1\n';
+const clipboardElementTypes = new Set(['wall', 'door', 'window', 'wall-art', 'furniture', 'stair', 'column', 'text-annotation', 'walkthrough-point']);
+
+function cloneClipboardElement(item: ClipboardElement): ClipboardElement {
+  return JSON.parse(JSON.stringify(item)) as ClipboardElement;
+}
+
+export function serializeElementClipboard(payload: ClipboardPayload): string {
+  return `${ELEMENT_CLIPBOARD_PREFIX}${JSON.stringify({ version: 1, kind: 'floorplan2d-elements', items: payload.items })}`;
+}
+
+export function parseElementClipboard(text: string): ClipboardPayload | null {
+  const match = /^FLOORPLAN2D_CLIPBOARD_V1\r?\n/.exec(text);
+  if (!match) return null;
+  try {
+    const value = JSON.parse(text.slice(match[0].length)) as { version?: unknown; kind?: unknown; items?: unknown };
+    if (value.version !== 1 || value.kind !== 'floorplan2d-elements' || !Array.isArray(value.items) || !value.items.length) return null;
+    const valid = value.items.every((item) => {
+      if (!item || typeof item !== 'object') return false;
+      const candidate = item as { type?: unknown; data?: unknown };
+      return typeof candidate.type === 'string' && clipboardElementTypes.has(candidate.type) && !!candidate.data && typeof candidate.data === 'object' && typeof (candidate.data as { id?: unknown }).id === 'string';
+    });
+    return valid ? { items: value.items as ClipboardElement[] } : null;
+  } catch {
+    return null;
+  }
+}
+
+export function copySelectedElements(ids?: readonly string[]): ClipboardPayload | null {
+  const project = get(currentProject);
+  const floor = project?.floors.find((item) => item.id === project.activeFloorId);
+  if (!floor) return null;
+  const selected = ids?.length ? ids : [...get(selectedElementIds), ...(get(selectedElementId) ? [get(selectedElementId)!] : [])];
+  const uniqueIds = new Set(selected);
+  const sources: Array<[ClipboardElement['type'], Array<{ id: string }>]> = [
+    ['wall', floor.walls], ['door', floor.doors], ['window', floor.windows],
+    ['wall-art', floor.wallArt ?? []], ['furniture', floor.furniture], ['stair', floor.stairs],
+    ['column', floor.columns], ['text-annotation', floor.textAnnotations ?? []],
+    ['walkthrough-point', floor.walkthroughPoints ?? []]
+  ];
+  const items: ClipboardElement[] = [];
+  for (const id of uniqueIds) {
+    for (const [type, values] of sources) {
+      const data = values.find((value) => value.id === id);
+      if (data) {
+        items.push(cloneClipboardElement({ type, data } as ClipboardElement));
+        break;
+      }
+    }
+  }
+  if (!items.length) return null;
+  const payload = { items };
+  elementClipboard.set(payload);
+  return payload;
+}
+
+export function pasteCopiedElements(offset: Point = { x: 30, y: 30 }, source?: ClipboardPayload): string[] {
+  const payload = source ?? get(elementClipboard);
+  if (!payload?.items.length) return [];
+  elementClipboard.set(payload);
+  const newIds: string[] = [];
+  const idMap = new Map<string, string>();
+  for (const item of payload.items) idMap.set(item.data.id, uid());
+  mutate((floor) => {
+    for (const source of payload.items) {
+      const item = cloneClipboardElement(source);
+      const id = idMap.get(item.data.id)!;
+      newIds.push(id);
+      if (item.type === 'wall') {
+        const data = item.data;
+        floor.walls.push({ ...data, id, start: { x: data.start.x + offset.x, y: data.start.y + offset.y }, end: { x: data.end.x + offset.x, y: data.end.y + offset.y }, curvePoint: data.curvePoint ? { x: data.curvePoint.x + offset.x, y: data.curvePoint.y + offset.y } : undefined });
+      } else if (item.type === 'door') floor.doors.push({ ...item.data, id, wallId: idMap.get(item.data.wallId) ?? item.data.wallId, position: idMap.has(item.data.wallId) ? item.data.position : Math.min(1, item.data.position + 0.1) });
+      else if (item.type === 'window') floor.windows.push({ ...item.data, id, wallId: idMap.get(item.data.wallId) ?? item.data.wallId, position: idMap.has(item.data.wallId) ? item.data.position : Math.min(1, item.data.position + 0.1) });
+      else if (item.type === 'wall-art') floor.wallArt = [...(floor.wallArt ?? []), { ...item.data, id, wallId: idMap.get(item.data.wallId) ?? item.data.wallId, position: idMap.has(item.data.wallId) ? item.data.position : Math.min(0.95, item.data.position + 0.1) }];
+      else if (item.type === 'furniture') floor.furniture.push({ ...item.data, id, position: { x: item.data.position.x + offset.x, y: item.data.position.y + offset.y } });
+      else if (item.type === 'stair') floor.stairs.push({ ...item.data, id, position: { x: item.data.position.x + offset.x, y: item.data.position.y + offset.y } });
+      else if (item.type === 'column') floor.columns.push({ ...item.data, id, position: { x: item.data.position.x + offset.x, y: item.data.position.y + offset.y } });
+      else if (item.type === 'text-annotation') floor.textAnnotations.push({ ...item.data, id, x: item.data.x + offset.x, y: item.data.y + offset.y });
+      else floor.walkthroughPoints = [...(floor.walkthroughPoints ?? []), { ...item.data, id, x: item.data.x + offset.x, y: item.data.y + offset.y }];
+    }
+  }, 'Pasted selected elements');
+  selectedElementIds.set(new Set(newIds));
+  selectedElementId.set(newIds[0] ?? null);
+  return newIds;
+}
 
 export function updateOptionsElement(kind: import('$lib/models/types').OptionsElementKind, id: string, updates: Record<string, unknown>): void {
   mutate((floor) => {
