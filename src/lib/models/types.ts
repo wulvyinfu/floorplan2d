@@ -334,3 +334,11 @@ export interface Project {
   updatedAt: Date;
   customPatterns?: CustomPattern[];
 }
+
+export type SaveSource = 'manual' | 'auto' | 'shortcut' | 'external';
+
+export interface SaveEvent {
+  project: Project;
+  source: SaveSource;
+  savedAt: Date;
+}

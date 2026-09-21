@@ -3,13 +3,14 @@
   import { get } from 'svelte/store';
   import type { BatchGridPlacementInput } from '$lib/models/types';
   import { preGenerateObjectGrid as startObjectGridPlacement } from '$lib/stores/project';
-  import type { CustomPattern, GenerateObjectsInput, GenerateObjectsResult, ObjectAddedEvent, OpeningCatalogConfig, OptionsContextSnapshot, OptionsSelection, Point, Project, WalkthroughPoint, WalkthroughPointAddedEvent } from '$lib/models/types';
+  import type { CustomPattern, GenerateObjectsInput, GenerateObjectsResult, ObjectAddedEvent, OpeningCatalogConfig, OptionsContextSnapshot, OptionsSelection, Point, Project, SaveEvent, WalkthroughPoint, WalkthroughPointAddedEvent } from '$lib/models/types';
   import type { RoomPreset } from '$lib/utils/roomPresets';
   import type { RoomTemplate } from '$lib/utils/roomTemplates';
   import type { DataStore } from '$lib/services/datastore';
   import { localStore } from '$lib/services/datastore';
   import { configureRuntime } from '$lib/runtime';
   import { resolvedTheme, themePreference, type ThemePreference } from '$lib/stores/theme';
+  import { manualSave } from '$lib/stores/saveStatus';
   import { activeFloor, copySelectedElements, parseElementClipboard, pasteCopiedElements, selectedElementId, selectedElementIds, selectedRoomId, serializeElementClipboard } from '$lib/stores/project';
   import { addWalkthroughPoint as addProjectWalkthroughPoint, currentProject, createDefaultProject, generateObjects as generateProjectObjects, insertWalkthroughPoint as insertProjectWalkthroughPoint, normalizeCoordinates as normalizeProjectCoordinates, selectedTool, setWalkthroughPoints as setProjectWalkthroughPoints, updateWalkthroughPoint as updateProjectWalkthroughPoint } from '$lib/stores/project';
   import type { Tool } from '$lib/stores/project';
@@ -43,6 +44,7 @@
     normalizeCoordinates(floorId?: string): Point | null;
     copySelection(): Promise<boolean>;
     pasteSelection(offset?: Point): Promise<string[]>;
+    save(): Promise<SaveEvent | null>;
   }
 
   type ModulePosition = 'toolbar' | 'leftPanel' | 'rightPanel' | 'canvasOverlay';
@@ -57,6 +59,7 @@
     onProjectChange?: (project: Project) => void;
     onObjectAdded?: (event: ObjectAddedEvent) => void;
     onWalkthroughPointAdded?: (event: WalkthroughPointAddedEvent) => void;
+    onSave?: (event: SaveEvent) => void;
     onReady?: (handle: FloorplanEditorHandle) => void;
     onModuleTarget?: (position: ModulePosition, element: HTMLElement | null) => void;
     hideDefaultOptions?: boolean;
@@ -76,6 +79,7 @@
     onProjectChange,
     onObjectAdded,
     onWalkthroughPointAdded,
+    onSave,
     onReady,
     onModuleTarget,
     theme,
@@ -256,6 +260,10 @@
     return payload ? pasteCopiedElements(offset, payload) : [];
   }
 
+  export function save() {
+    return manualSave('external');
+  }
+
   function handleKeydown(event: KeyboardEvent) {
     const target = event.target as HTMLElement;
     const editing = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable;
@@ -273,7 +281,7 @@
   }
 
   onMount(() => {
-    configureRuntime({ dataStore });
+    configureRuntime({ dataStore, onSave });
     currentProject.set(project);
     if (customPatterns) setCustomPatterns(customPatterns);
     const initialProject = get(currentProject);
@@ -331,7 +339,7 @@
       }
     });
 
-    onReady?.({ getProject, loadProject, focus, registerPattern, removePattern, setRoomCatalogs, setOpeningCatalog, generateObjects, preGenerateObjectGrid, setTool, addWalkthroughPoint, setWalkthroughPoints, updateWalkthroughPoint, insertWalkthroughPoint, normalizeCoordinates, copySelection, pasteSelection });
+    onReady?.({ getProject, loadProject, focus, registerPattern, removePattern, setRoomCatalogs, setOpeningCatalog, generateObjects, preGenerateObjectGrid, setTool, addWalkthroughPoint, setWalkthroughPoints, updateWalkthroughPoint, insertWalkthroughPoint, normalizeCoordinates, copySelection, pasteSelection, save });
     root.addEventListener('keydown', handleKeydown);
 
     return () => {

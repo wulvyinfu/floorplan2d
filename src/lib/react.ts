@@ -9,7 +9,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { GenerateObjectsError } from './models/types';
 import { themePreference, type ThemePreference } from './stores/theme';
 import type { BatchGridPlacementInput } from './models/types';
-import type { CustomPattern, GenerateObjectsInput, GenerateObjectsResult, ObjectAddedEvent, OpeningCatalogConfig, OptionsContextSnapshot, OptionsElement, Point, Project, WalkthroughPoint, WalkthroughPointAddedEvent } from './models/types';
+import type { CustomPattern, GenerateObjectsInput, GenerateObjectsResult, ObjectAddedEvent, OpeningCatalogConfig, OptionsContextSnapshot, OptionsElement, Point, Project, SaveEvent, WalkthroughPoint, WalkthroughPointAddedEvent } from './models/types';
 import { removeElement, selectedElementId, selectedElementIds, selectedRoomId, updateOptionsElement } from './stores/project';
 import type { Tool } from './stores/project';
 import type { RoomPreset } from './utils/roomPresets';
@@ -34,6 +34,7 @@ export interface FloorplanEditorHandle {
   normalizeCoordinates(floorId?: string): Point | null;
   copySelection(): Promise<boolean>;
   pasteSelection(offset?: Point): Promise<string[]>;
+  save(): Promise<SaveEvent | null>;
 }
 
 export type FloorplanEditorModulePosition = 'toolbar' | 'leftPanel' | 'rightPanel' | 'canvasOverlay';
@@ -71,6 +72,7 @@ export interface FloorplanEditorProps {
   onProjectChange?: (project: Project) => void;
   onObjectAdded?: (event: ObjectAddedEvent) => void;
   onWalkthroughPointAdded?: (event: WalkthroughPointAddedEvent) => void;
+  onSave?: (event: SaveEvent) => void;
   onReady?: (handle: FloorplanEditorHandle) => void;
 }
 
@@ -97,6 +99,7 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
     onProjectChange,
     onObjectAdded,
     onWalkthroughPointAdded,
+    onSave,
     onReady
   },
   forwardedRef
@@ -104,14 +107,14 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
   const hostRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<FloorplanEditorHandle | null>(null);
   const projectRef = useRef(project);
-  const callbacksRef = useRef({ onProjectChange, onObjectAdded, onWalkthroughPointAdded, onReady });
+  const callbacksRef = useRef({ onProjectChange, onObjectAdded, onWalkthroughPointAdded, onSave, onReady });
   const effectiveObjects = customObjects ?? customPatterns;
   const patternsRef = useRef(effectiveObjects);
   const [moduleTargets, setModuleTargets] = useState<Partial<Record<FloorplanEditorModulePosition, HTMLElement>>>({});
   const [optionsSnapshot, setOptionsSnapshot] = useState<OptionsContextSnapshot | null>(null);
 
   projectRef.current = project;
-  callbacksRef.current = { onProjectChange, onObjectAdded, onWalkthroughPointAdded, onReady };
+  callbacksRef.current = { onProjectChange, onObjectAdded, onWalkthroughPointAdded, onSave, onReady };
   patternsRef.current = effectiveObjects;
 
   useImperativeHandle(forwardedRef, () => ({
@@ -140,7 +143,8 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
     insertWalkthroughPoint: (afterPointId, position, name, dwellTime) => handleRef.current?.insertWalkthroughPoint(afterPointId, position, name, dwellTime) ?? null,
     normalizeCoordinates: (floorId) => handleRef.current?.normalizeCoordinates(floorId) ?? null,
     copySelection: () => handleRef.current?.copySelection() ?? Promise.resolve(false),
-    pasteSelection: (offset) => handleRef.current?.pasteSelection(offset) ?? Promise.resolve([])
+    pasteSelection: (offset) => handleRef.current?.pasteSelection(offset) ?? Promise.resolve([]),
+    save: () => handleRef.current?.save() ?? Promise.resolve(null)
   }), []);
 
   useEffect(() => {
@@ -171,6 +175,9 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
         },
         onWalkthroughPointAdded(event: WalkthroughPointAddedEvent) {
           callbacksRef.current.onWalkthroughPointAdded?.(event);
+        },
+        onSave(event: SaveEvent) {
+          callbacksRef.current.onSave?.(event);
         },
         onReady(handle: FloorplanEditorHandle) {
           handleRef.current = handle;

@@ -2,7 +2,8 @@ import { writable, get } from 'svelte/store';
 import { currentProject } from './project';
 import { localStore } from '$lib/services/datastore';
 import { saveSnapshot } from '$lib/stores/versionHistory';
-import { getRuntimeDataStore } from '$lib/runtime';
+import { getRuntimeDataStore, getRuntimeSaveCallback } from '$lib/runtime';
+import type { Project, SaveEvent, SaveSource } from '$lib/models/types';
 
 export type SaveState = 'saved' | 'unsaved' | 'saving';
 
@@ -11,6 +12,16 @@ export const lastSavedAt = writable<Date | null>(null);
 
 function dataStore() {
   return getRuntimeDataStore() ?? localStore;
+}
+
+function notifySaved(project: Project, source: SaveSource, savedAt: Date): SaveEvent {
+  const event = { project, source, savedAt };
+  try {
+    getRuntimeSaveCallback()?.(event);
+  } catch (error) {
+    console.error('[Save callback] Failed:', error);
+  }
+  return event;
 }
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -64,8 +75,10 @@ async function autoSave() {
   try {
     await dataStore().save(p);
     captureThumbnail(p.id);
+    const savedAt = new Date();
     saveState.set('saved');
-    lastSavedAt.set(new Date());
+    lastSavedAt.set(savedAt);
+    notifySaved(p, 'auto', savedAt);
   } catch (e) {
     console.error('[AutoSave] Failed:', e);
     saveState.set('unsaved');
@@ -73,17 +86,19 @@ async function autoSave() {
 }
 
 /** Manual save */
-export async function manualSave() {
+export async function manualSave(source: Exclude<SaveSource, 'auto'> = 'manual'): Promise<SaveEvent | null> {
   if (debounceTimer) clearTimeout(debounceTimer);
   const p = get(currentProject);
-  if (!p) return;
+  if (!p) return null;
   saveState.set('saving');
   try {
     await dataStore().save(p);
     captureThumbnail(p.id);
     saveSnapshot(p, 'Manual save');
+    const savedAt = new Date();
     saveState.set('saved');
-    lastSavedAt.set(new Date());
+    lastSavedAt.set(savedAt);
+    return notifySaved(p, source, savedAt);
   } catch (e) {
     console.error('[Save] Failed:', e);
     saveState.set('unsaved');

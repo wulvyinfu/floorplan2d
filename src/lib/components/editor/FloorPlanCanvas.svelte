@@ -11,6 +11,7 @@
   import { getCatalogItem } from '$lib/utils/furnitureCatalog';
   import { drawFurnitureIcon } from '$lib/utils/furnitureIcons';
   import { handleGlobalShortcut } from '$lib/utils/shortcuts';
+  import { manualSave } from '$lib/stores/saveStatus';
   import ContextMenu from './ContextMenu.svelte';
   import { placePreset } from '$lib/utils/roomPresets';
   import { placeRoomTemplate } from '$lib/utils/roomTemplates';
@@ -496,6 +497,10 @@
 
   // ── Delegating wrappers to extracted modules ──────────────────────────
 
+  const canvasPalette = $derived($resolvedTheme === 'dark'
+    ? { wallFill: '#1760ae', wallStroke: '#5dccff', text: '#f8fafc', mutedText: '#d1d5db' }
+    : { wallFill: '#404040', wallStroke: '#333333', text: '#374151', mutedText: '#9ca3af' });
+
   function drawDoorDistanceDimensions(wall: Wall, door: Door) {
     _drawDoorDistanceDimensions(getCS(), wall, door, dimSettings);
   }
@@ -505,7 +510,7 @@
   }
 
   function drawWall(w: Wall, selected: boolean) {
-    _drawWall(getCS(), w, selected, showDimensions, dimSettings);
+    _drawWall(getCS(), w, selected, showDimensions, dimSettings, canvasPalette);
   }
 
   function drawDoorOnWall(wall: Wall, door: Door) {
@@ -521,7 +526,7 @@
   }
 
   function drawFurniture(item: FurnitureItem, selected: boolean) {
-    drawFurnitureItem(getCS(), item, selected);
+    drawFurnitureItem(getCS(), item, selected, canvasPalette);
   }
 
   // Track wall snap during placement preview
@@ -809,7 +814,7 @@
   }
 
   function drawTextAnnotations(floor: Floor) {
-    _drawTextAnnotations(getCS(), floor, selectedTextAnnotationId, currentSelectedId);
+    _drawTextAnnotations(getCS(), floor, selectedTextAnnotationId, currentSelectedId, canvasPalette);
   }
 
   function hitTestTextAnnotation(wp: Point, floor: Floor): string | null {
@@ -817,7 +822,7 @@
   }
 
   function drawWallJoints(floor: Floor, selId: string | null) {
-    _drawWallJoints(getCS(), floor, selId);
+    _drawWallJoints(getCS(), floor, selId,canvasPalette);
   }
 
   function drawSnapPoints() {
@@ -827,7 +832,7 @@
 
   function drawRooms() {
     if (!currentFloor) return;
-    _drawRooms(getCS(), currentFloor, detectedRooms, currentSelectedRoomId, showRoomLabels, showDimensions, dimSettings);
+    _drawRooms(getCS(), currentFloor, detectedRooms, currentSelectedRoomId, showRoomLabels, showDimensions, dimSettings, canvasPalette);
   }
 
   function drawAngleGuides(start: Point) {
@@ -884,7 +889,7 @@
   }
 
   function drawStair(stair: Stair, selected: boolean) {
-    _drawStair(getCS(), stair, selected);
+    _drawStair(getCS(), stair, selected, canvasPalette);
   }
 
   function drawColumn(col: Column, selected: boolean) {
@@ -914,6 +919,9 @@
     const R = RULER_SIZE;
     const fontSize = 9;
     const isImperial = dimSettings.units === 'imperial';
+    const rulerPalette = $resolvedTheme === 'dark'
+      ? { background: '#1f2937', corner: '#111827', border: '#4b5563', text: '#e5e7eb', major: '#9ca3af', minor: '#4b5563' }
+      : { background: '#f1f3f5', corner: '#e5e7eb', border: '#d1d5db', text: '#6b7280', major: '#9ca3af', minor: '#d1d5db' };
     ctx.save();
 
     // Determine tick spacing based on zoom
@@ -947,9 +955,9 @@
     }
 
     // --- Horizontal ruler (top) ---
-    ctx.fillStyle = '#f1f3f5';
+    ctx.fillStyle = rulerPalette.background;
     ctx.fillRect(R, 0, width - R, R);
-    ctx.strokeStyle = '#d1d5db';
+    ctx.strokeStyle = rulerPalette.border;
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(R, R); ctx.lineTo(width, R); ctx.stroke();
 
@@ -958,7 +966,7 @@
     const worldRight = screenToWorld(width, 0).x;
     const startTick = Math.floor(worldLeft / minorStep) * minorStep;
 
-    ctx.fillStyle = '#6b7280';
+    ctx.fillStyle = rulerPalette.text;
     ctx.font = `${fontSize}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
@@ -972,7 +980,7 @@
 
       // Highlight origin tick
       const isOrigin = Math.abs(wx) < 0.01;
-      ctx.strokeStyle = isOrigin ? '#ef4444' : isMajor ? '#9ca3af' : '#d1d5db';
+      ctx.strokeStyle = isOrigin ? '#ef4444' : isMajor ? rulerPalette.major : rulerPalette.minor;
       ctx.lineWidth = isOrigin ? 1.5 : isMajor ? 1 : 0.5;
       ctx.beginPath();
       ctx.moveTo(sx, R);
@@ -980,17 +988,17 @@
       ctx.stroke();
 
       if (isMajor) {
-        ctx.fillStyle = isOrigin ? '#ef4444' : '#6b7280';
+        ctx.fillStyle = isOrigin ? '#ef4444' : rulerPalette.text;
         const label = isOrigin ? '0' : rulerLabel(wx, tickStep, isImperial);
         ctx.fillText(label, sx, 2);
-        ctx.fillStyle = '#6b7280';
+        ctx.fillStyle = rulerPalette.text;
       }
     }
 
     // --- Vertical ruler (left) ---
-    ctx.fillStyle = '#f1f3f5';
+    ctx.fillStyle = rulerPalette.background;
     ctx.fillRect(0, R, R, height - R);
-    ctx.strokeStyle = '#d1d5db';
+    ctx.strokeStyle = rulerPalette.border;
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(R, R); ctx.lineTo(R, height); ctx.stroke();
 
@@ -1009,7 +1017,7 @@
       const tickH = isMajor ? R * 0.7 : isMid ? R * 0.45 : R * 0.25;
 
       const isOrigin = Math.abs(wy) < 0.01;
-      ctx.strokeStyle = isOrigin ? '#ef4444' : isMajor ? '#9ca3af' : '#d1d5db';
+      ctx.strokeStyle = isOrigin ? '#ef4444' : isMajor ? rulerPalette.major : rulerPalette.minor;
       ctx.lineWidth = isOrigin ? 1.5 : isMajor ? 1 : 0.5;
       ctx.beginPath();
       ctx.moveTo(R, sy);
@@ -1023,7 +1031,7 @@
         ctx.rotate(-Math.PI / 2);
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
-        ctx.fillStyle = isOrigin ? '#ef4444' : '#6b7280';
+        ctx.fillStyle = isOrigin ? '#ef4444' : rulerPalette.text;
         ctx.font = `${fontSize}px sans-serif`;
         ctx.fillText(label, 0, 0);
         ctx.restore();
@@ -1031,9 +1039,9 @@
     }
 
     // Corner square with origin marker
-    ctx.fillStyle = '#e5e7eb';
+    ctx.fillStyle = rulerPalette.corner;
     ctx.fillRect(0, 0, R, R);
-    ctx.strokeStyle = '#d1d5db';
+    ctx.strokeStyle = rulerPalette.border;
     ctx.lineWidth = 1;
     ctx.strokeRect(0, 0, R, R);
     // Origin crosshair in corner
@@ -3153,6 +3161,9 @@
 
     // Global shortcuts
     const handled = handleGlobalShortcut(e, {
+      save: () => {
+        void manualSave('shortcut');
+      },
       rotateFurniture: () => {
         if (currentPlacingId) {
           placingRotation.update(r => (r + 15) % 360);

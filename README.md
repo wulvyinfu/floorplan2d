@@ -297,6 +297,23 @@ function handleObjectAdded(event: ObjectAddedEvent) {
 
 `onObjectAdded` fires when users click or drag an object into the plan, when a room template creates objects, and when `generateObjects` creates a batch. `source` is `editor` or `batch`; creating ten cabinets fires ten events, one for each instance. Objects already present in the initial project or in `loadProject()` do not trigger the callback.
 
+#### 保存回调 / Save Callback
+
+```tsx
+<FloorplanEditor
+  ref={editorRef}
+  onSave={({ project, source, savedAt }) => {
+    console.log(project.id, source, savedAt);
+  }}
+/>
+
+await editorRef.current?.save();
+```
+
+`onSave` 只在数据存储成功后触发。`source` 区分顶部按钮 `manual`、自动保存 `auto`、快捷键 `shortcut` 和外部调用 `external`。
+
+`onSave` fires only after the data store succeeds. `source` identifies toolbar saves (`manual`), auto-save (`auto`), keyboard saves (`shortcut`), and imperative saves (`external`).
+
 #### 漫游标点与路线 / Walkthrough Points and Routes
 
 编辑器的“建造 → 漫游标点”工具支持连续点击画布添加标点，并按照标点顺序自动连线。切换到选择工具后可以拖动或删除标点，中间标点删除后前后节点会自动重新连接。

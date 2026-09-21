@@ -3,31 +3,47 @@
  * All functions are pure — they take canvas context + data and render.
  * Extracted from FloorPlanCanvas.svelte.
  */
-import type { Point, Wall, Door, Window as Win, WallArt, FurnitureItem, Stair, Column, Floor, Annotation, WalkthroughPoint } from '$lib/models/types';
-import type { Room } from '$lib/models/types';
-import type { CanvasState } from '$lib/utils/canvasInteraction';
-import type { ProjectSettings } from '$lib/stores/settings';
-import { formatLength, formatArea } from '$lib/stores/settings';
-import { getCatalogItem } from '$lib/utils/furnitureCatalog';
-import { drawFurnitureIcon } from '$lib/utils/furnitureIcons';
-import { getRoomPolygon, roomCentroid } from '$lib/utils/roomDetection';
-import { getWallTextureCanvas, getFloorTextureCanvas } from '$lib/utils/textureGenerator';
+import type {
+  Point,
+  Wall,
+  Door,
+  Window as Win,
+  WallArt,
+  FurnitureItem,
+  Stair,
+  Column,
+  Floor,
+  Annotation,
+  WalkthroughPoint,
+} from "$lib/models/types";
+import type { Room } from "$lib/models/types";
+import type { CanvasState } from "$lib/utils/canvasInteraction";
+import type { ProjectSettings } from "$lib/stores/settings";
+import { formatLength, formatArea } from "$lib/stores/settings";
+import { getCatalogItem } from "$lib/utils/furnitureCatalog";
+import { drawFurnitureIcon } from "$lib/utils/furnitureIcons";
+import { getRoomPolygon, roomCentroid } from "$lib/utils/roomDetection";
+import {
+  getWallTextureCanvas,
+  getFloorTextureCanvas,
+} from "$lib/utils/textureGenerator";
 
 const patternImages = new Map<string, HTMLImageElement>();
 const failedPatternImages = new Set<string>();
 
 function getPatternImage(src: string): HTMLImageElement | null {
-  if (typeof Image === 'undefined') return null;
+  if (typeof Image === "undefined") return null;
   if (failedPatternImages.has(src)) return null;
   const cached = patternImages.get(src);
   if (cached) return cached;
   const image = new Image();
-  image.crossOrigin = 'anonymous';
-  image.onload = () => window.dispatchEvent(new CustomEvent('floorplan-pattern-loaded'));
+  image.crossOrigin = "anonymous";
+  image.onload = () =>
+    window.dispatchEvent(new CustomEvent("floorplan-pattern-loaded"));
   image.onerror = () => {
     patternImages.delete(src);
     failedPatternImages.add(src);
-    window.dispatchEvent(new CustomEvent('floorplan-pattern-loaded'));
+    window.dispatchEvent(new CustomEvent("floorplan-pattern-loaded"));
   };
   image.src = src;
   patternImages.set(src, image);
@@ -40,14 +56,18 @@ export function wallLength(w: Wall): number {
   if (w.curvePoint) {
     let len = 0;
     const N = 20;
-    let px = w.start.x, py = w.start.y;
+    let px = w.start.x,
+      py = w.start.y;
     for (let i = 1; i <= N; i++) {
       const t = i / N;
       const mt = 1 - t;
-      const nx = mt * mt * w.start.x + 2 * mt * t * w.curvePoint.x + t * t * w.end.x;
-      const ny = mt * mt * w.start.y + 2 * mt * t * w.curvePoint.y + t * t * w.end.y;
+      const nx =
+        mt * mt * w.start.x + 2 * mt * t * w.curvePoint.x + t * t * w.end.x;
+      const ny =
+        mt * mt * w.start.y + 2 * mt * t * w.curvePoint.y + t * t * w.end.y;
       len += Math.hypot(nx - px, ny - py);
-      px = nx; py = ny;
+      px = nx;
+      py = ny;
     }
     return len;
   }
@@ -71,8 +91,12 @@ export function wallPointAt(w: Wall, t: number): Point {
 export function wallTangentAt(w: Wall, t: number): Point {
   if (w.curvePoint) {
     const mt = 1 - t;
-    const dx = 2 * mt * (w.curvePoint.x - w.start.x) + 2 * t * (w.end.x - w.curvePoint.x);
-    const dy = 2 * mt * (w.curvePoint.y - w.start.y) + 2 * t * (w.end.y - w.curvePoint.y);
+    const dx =
+      2 * mt * (w.curvePoint.x - w.start.x) +
+      2 * t * (w.end.x - w.curvePoint.x);
+    const dy =
+      2 * mt * (w.curvePoint.y - w.start.y) +
+      2 * t * (w.end.y - w.curvePoint.y);
     const len = Math.hypot(dx, dy) || 1;
     return { x: dx / len, y: dy / len };
   }
@@ -88,11 +112,23 @@ function wallThicknessScreen(w: Wall, zoom: number): number {
 
 // ── Coordinate conversion (local helpers using CanvasState) ─────────
 
-function wts(cs: CanvasState, wx: number, wy: number): { x: number; y: number } {
-  return { x: (wx - cs.camX) * cs.zoom + cs.width / 2, y: (wy - cs.camY) * cs.zoom + cs.height / 2 };
+function wts(
+  cs: CanvasState,
+  wx: number,
+  wy: number,
+): { x: number; y: number } {
+  return {
+    x: (wx - cs.camX) * cs.zoom + cs.width / 2,
+    y: (wy - cs.camY) * cs.zoom + cs.height / 2,
+  };
 }
 
-export function drawWalkthroughPath(cs: CanvasState, points: readonly WalkthroughPoint[], selectedIds: ReadonlySet<string>, selectedId: string | null): void {
+export function drawWalkthroughPath(
+  cs: CanvasState,
+  points: readonly WalkthroughPoint[],
+  selectedIds: ReadonlySet<string>,
+  selectedId: string | null,
+): void {
   if (points.length === 0) return;
   const { ctx } = cs;
   ctx.save();
@@ -104,7 +140,7 @@ export function drawWalkthroughPath(cs: CanvasState, points: readonly Walkthroug
       const screen = wts(cs, points[index].x, points[index].y);
       ctx.lineTo(screen.x, screen.y);
     }
-    ctx.strokeStyle = '#7c3aed';
+    ctx.strokeStyle = "#7c3aed";
     ctx.lineWidth = 2;
     ctx.setLineDash([8, 5]);
     ctx.stroke();
@@ -115,24 +151,24 @@ export function drawWalkthroughPath(cs: CanvasState, points: readonly Walkthroug
     const selected = point.id === selectedId || selectedIds.has(point.id);
     ctx.beginPath();
     ctx.arc(screen.x, screen.y, selected ? 9 : 7, 0, Math.PI * 2);
-    ctx.fillStyle = selected ? '#7c3aed' : '#ffffff';
+    ctx.fillStyle = selected ? "#7c3aed" : "#ffffff";
     ctx.fill();
-    ctx.strokeStyle = '#7c3aed';
+    ctx.strokeStyle = "#7c3aed";
     ctx.lineWidth = selected ? 3 : 2;
     ctx.stroke();
-    ctx.fillStyle = selected ? '#ffffff' : '#7c3aed';
-    ctx.font = '10px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.fillStyle = selected ? "#ffffff" : "#7c3aed";
+    ctx.font = "10px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
     ctx.fillText(String(index + 1), screen.x, screen.y);
     if (point.name) {
-      ctx.fillStyle = '#5b21b6';
-      ctx.font = '12px sans-serif';
+      ctx.fillStyle = "#5b21b6";
+      ctx.font = "12px sans-serif";
       ctx.fillText(point.name, screen.x, screen.y + 20);
     }
     if ((point.dwellTime ?? 0) > 0) {
-      ctx.fillStyle = '#6d28d9';
-      ctx.font = '10px sans-serif';
+      ctx.fillStyle = "#6d28d9";
+      ctx.font = "10px sans-serif";
       ctx.fillText(`${point.dwellTime}s`, screen.x, screen.y - 16);
     }
   });
@@ -142,12 +178,20 @@ export function drawWalkthroughPath(cs: CanvasState, points: readonly Walkthroug
 export function wallArtCenter(wall: Wall, item: WallArt): Point {
   const point = wallPointAt(wall, item.position);
   const tangent = wallTangentAt(wall, item.position);
-  const sign = item.side === 'anti' ? -1 : 1;
+  const sign = item.side === "anti" ? -1 : 1;
   const offset = wall.thickness / 2 + 4;
-  return { x: point.x - tangent.y * offset * sign, y: point.y + tangent.x * offset * sign };
+  return {
+    x: point.x - tangent.y * offset * sign,
+    y: point.y + tangent.x * offset * sign,
+  };
 }
 
-export function drawWallArt(cs: CanvasState, wall: Wall, item: WallArt, selected: boolean): void {
+export function drawWallArt(
+  cs: CanvasState,
+  wall: Wall,
+  item: WallArt,
+  selected: boolean,
+): void {
   const center = wallArtCenter(wall, item);
   const tangent = wallTangentAt(wall, item.position);
   const screen = wts(cs, center.x, center.y);
@@ -157,7 +201,7 @@ export function drawWallArt(cs: CanvasState, wall: Wall, item: WallArt, selected
   cs.ctx.save();
   cs.ctx.translate(screen.x, screen.y);
   cs.ctx.rotate(angle);
-  cs.ctx.fillStyle = '#fef3c7';
+  cs.ctx.fillStyle = "#fef3c7";
   cs.ctx.strokeStyle = item.color;
   cs.ctx.lineWidth = selected ? 3 : 2;
   cs.ctx.fillRect(-width / 2, -depth / 2, width, depth);
@@ -176,7 +220,17 @@ export function drawWallArt(cs: CanvasState, wall: Wall, item: WallArt, selected
       sourceHeight = image.naturalWidth / frameRatio;
       sourceY = (image.naturalHeight - sourceHeight) / 2;
     }
-    cs.ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, -width / 2, -depth / 2, width, depth);
+    cs.ctx.drawImage(
+      image,
+      sourceX,
+      sourceY,
+      sourceWidth,
+      sourceHeight,
+      -width / 2,
+      -depth / 2,
+      width,
+      depth,
+    );
   }
   cs.ctx.strokeRect(-width / 2, -depth / 2, width, depth);
   if (!image?.complete || image.naturalWidth === 0) {
@@ -191,7 +245,7 @@ export function drawWallArt(cs: CanvasState, wall: Wall, item: WallArt, selected
     cs.ctx.stroke();
   }
   if (selected) {
-    cs.ctx.strokeStyle = '#3b82f6';
+    cs.ctx.strokeStyle = "#3b82f6";
     cs.ctx.lineWidth = 1.5;
     cs.ctx.setLineDash([4, 3]);
     cs.ctx.strokeRect(-width / 2 - 4, -depth / 2 - 4, width + 8, depth + 8);
@@ -213,33 +267,52 @@ export function drawGrid(
   const step = (snapToGrid ? gridSize : GRID) * zoom;
   if (step < 4) return;
 
-  ctx.strokeStyle = '#e8eaed';
+  ctx.strokeStyle = "#e8eaed";
   ctx.lineWidth = 0.5;
   const offX = (width / 2 - camX * zoom) % step;
   const offY = (height / 2 - camY * zoom) % step;
   for (let x = offX; x < width; x += step) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+    ctx.stroke();
   }
   for (let y = offY; y < height; y += step) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
   }
 
   const majorStep = 100 * zoom;
   if (majorStep >= 20) {
-    ctx.strokeStyle = '#d1d5db';
+    ctx.strokeStyle = "#d1d5db";
     ctx.lineWidth = 0.8;
     const mOffX = (width / 2 - camX * zoom) % majorStep;
     const mOffY = (height / 2 - camY * zoom) % majorStep;
     for (let x = mOffX; x < width; x += majorStep) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+      ctx.stroke();
     }
     for (let y = mOffY; y < height; y += majorStep) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+      ctx.stroke();
     }
   }
 }
 
 // ── Wall drawing ─────────────────────────────────────────────────────
+
+export interface CanvasPalette {
+  wallFill: string;
+  wallStroke: string;
+  text: string;
+  mutedText: string;
+}
 
 export function drawWall(
   cs: CanvasState,
@@ -247,6 +320,7 @@ export function drawWall(
   selected: boolean,
   showDimensions: boolean,
   dimSettings: ProjectSettings,
+  palette?: CanvasPalette,
 ): void {
   const { ctx, zoom, width, height } = cs;
   const s = wts(cs, w.start.x, w.start.y);
@@ -267,19 +341,21 @@ export function drawWall(
       const tdx = 2 * mt * (cp.x - s.x) + 2 * t * (e.x - cp.x);
       const tdy = 2 * mt * (cp.y - s.y) + 2 * t * (e.y - cp.y);
       const tlen = Math.hypot(tdx, tdy) || 1;
-      const nx = (-tdy / tlen) * thickness / 2;
-      const ny = (tdx / tlen) * thickness / 2;
+      const nx = ((-tdy / tlen) * thickness) / 2;
+      const ny = ((tdx / tlen) * thickness) / 2;
       outerPts.push({ x: px + nx, y: py + ny });
       innerPts.push({ x: px - nx, y: py - ny });
     }
 
-    ctx.fillStyle = selected ? '#93c5fd' : '#404040';
-    ctx.strokeStyle = selected ? '#3b82f6' : '#333333';
+    ctx.fillStyle = selected ? "#93c5fd" : (palette?.wallFill ?? "#404040");
+    ctx.strokeStyle = selected ? "#3b82f6" : (palette?.wallStroke ?? "#333333");
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(outerPts[0].x, outerPts[0].y);
-    for (let i = 1; i < outerPts.length; i++) ctx.lineTo(outerPts[i].x, outerPts[i].y);
-    for (let i = innerPts.length - 1; i >= 0; i--) ctx.lineTo(innerPts[i].x, innerPts[i].y);
+    for (let i = 1; i < outerPts.length; i++)
+      ctx.lineTo(outerPts[i].x, outerPts[i].y);
+    for (let i = innerPts.length - 1; i >= 0; i--)
+      ctx.lineTo(innerPts[i].x, innerPts[i].y);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
@@ -293,24 +369,28 @@ export function drawWall(
       ctx.fillStyle = dimSettings.dimensionLineColor;
       const fontSize = Math.max(10, 11 * zoom);
       ctx.font = `${fontSize}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(formatLength(wlen, dimSettings.units), midS.x - midTan.y * offsetDist, midS.y + midTan.x * offsetDist);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(
+        formatLength(wlen, dimSettings.units),
+        midS.x - midTan.y * offsetDist,
+        midS.y + midTan.x * offsetDist,
+      );
     }
 
     if (selected) {
       const handleSize = 5;
       for (const pt of [s, e]) {
-        ctx.fillStyle = '#ffffff';
-        ctx.strokeStyle = '#3b82f6';
+        ctx.fillStyle = "#ffffff";
+        ctx.strokeStyle = "#3b82f6";
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.arc(pt.x, pt.y, handleSize, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
       }
-      ctx.fillStyle = '#fbbf24';
-      ctx.strokeStyle = '#d97706';
+      ctx.fillStyle = "#fbbf24";
+      ctx.strokeStyle = "#d97706";
       ctx.lineWidth = 1.5;
       const sz = 6;
       ctx.beginPath();
@@ -321,7 +401,7 @@ export function drawWall(
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
-      ctx.strokeStyle = '#d9770680';
+      ctx.strokeStyle = "#d9770680";
       ctx.lineWidth = 1;
       ctx.setLineDash([4, 4]);
       ctx.beginPath();
@@ -340,11 +420,11 @@ export function drawWall(
   const len = Math.hypot(dx, dy);
   if (len < 1) return;
 
-  const nx = (-dy / len) * thickness / 2;
-  const ny = (dx / len) * thickness / 2;
+  const nx = ((-dy / len) * thickness) / 2;
+  const ny = ((dx / len) * thickness) / 2;
 
-  ctx.fillStyle = selected ? '#93c5fd' : '#404040';
-  ctx.strokeStyle = selected ? '#3b82f6' : '#333333';
+  ctx.fillStyle = selected ? "#93c5fd" : (palette?.wallFill ?? "#404040");
+  ctx.strokeStyle = selected ? "#3b82f6" : (palette?.wallStroke ?? "#333333");
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(s.x + nx, s.y + ny);
@@ -376,10 +456,15 @@ export function drawWall(
       ctx.translate(cxp, cyp);
       ctx.rotate(angle);
       ctx.scale(scale, scale);
-      const pat = ctx.createPattern(texCanvas, 'repeat');
+      const pat = ctx.createPattern(texCanvas, "repeat");
       if (pat) {
         ctx.fillStyle = pat;
-        ctx.fillRect(-len / 2 / scale, -thickness / 2 / scale, len / scale, thickness / scale);
+        ctx.fillRect(
+          -len / 2 / scale,
+          -thickness / 2 / scale,
+          len / scale,
+          thickness / scale,
+        );
       }
     }
     ctx.restore();
@@ -392,25 +477,32 @@ export function drawWall(
   const mx = (s.x + e.x) / 2;
   const my = (s.y + e.y) / 2;
   const offsetDist = thickness / 2 + 20;
-  const nnx = (-dy / len);
-  const nny = (dx / len);
+  const nnx = -dy / len;
+  const nny = dx / len;
 
   let dimSide = 1;
   const testX = mx + nnx * offsetDist;
   const testY = my + nny * offsetDist;
-  if (testX < 10 || testX > width - 10 || testY < 10 || testY > height - 10) dimSide = -1;
+  if (testX < 10 || testX > width - 10 || testY < 10 || testY > height - 10)
+    dimSide = -1;
 
   const dOffX = nnx * offsetDist * dimSide;
   const dOffY = nny * offsetDist * dimSide;
 
   if (dimSettings.showExtensionLines) {
     const extLen = offsetDist + 4;
-    ctx.strokeStyle = dimSettings.dimensionLineColor + '80';
+    ctx.strokeStyle = dimSettings.dimensionLineColor + "80";
     ctx.lineWidth = 0.5;
     ctx.beginPath();
-    ctx.moveTo(s.x + nnx * (thickness / 2 + 2) * dimSide, s.y + nny * (thickness / 2 + 2) * dimSide);
+    ctx.moveTo(
+      s.x + nnx * (thickness / 2 + 2) * dimSide,
+      s.y + nny * (thickness / 2 + 2) * dimSide,
+    );
     ctx.lineTo(s.x + nnx * extLen * dimSide, s.y + nny * extLen * dimSide);
-    ctx.moveTo(e.x + nnx * (thickness / 2 + 2) * dimSide, e.y + nny * (thickness / 2 + 2) * dimSide);
+    ctx.moveTo(
+      e.x + nnx * (thickness / 2 + 2) * dimSide,
+      e.y + nny * (thickness / 2 + 2) * dimSide,
+    );
     ctx.lineTo(e.x + nnx * extLen * dimSide, e.y + nny * extLen * dimSide);
     ctx.stroke();
   }
@@ -423,12 +515,13 @@ export function drawWall(
   ctx.fillStyle = dimSettings.dimensionLineColor;
   const fontSize = Math.max(10, 11 * zoom);
   ctx.font = `${fontSize}px sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
   const dimLabel = formatLength(wlen, dimSettings.units);
   const textW = ctx.measureText(dimLabel).width;
 
-  const ux2 = dx / len, uy2 = dy / len;
+  const ux2 = dx / len,
+    uy2 = dy / len;
   const halfGap = textW / 2 + 4;
   ctx.strokeStyle = dimSettings.dimensionLineColor;
   ctx.lineWidth = 0.75;
@@ -444,8 +537,14 @@ export function drawWall(
   ctx.lineWidth = 1;
   for (const pt of [ds, de]) {
     ctx.beginPath();
-    ctx.moveTo(pt.x - (ux2 + nnx * dimSide) * tickSize, pt.y - (uy2 + nny * dimSide) * tickSize);
-    ctx.lineTo(pt.x + (ux2 + nnx * dimSide) * tickSize, pt.y + (uy2 + nny * dimSide) * tickSize);
+    ctx.moveTo(
+      pt.x - (ux2 + nnx * dimSide) * tickSize,
+      pt.y - (uy2 + nny * dimSide) * tickSize,
+    );
+    ctx.lineTo(
+      pt.x + (ux2 + nnx * dimSide) * tickSize,
+      pt.y + (uy2 + nny * dimSide) * tickSize,
+    );
     ctx.stroke();
   }
 
@@ -455,8 +554,8 @@ export function drawWall(
   if (selected) {
     const handleSize = 5;
     for (const pt of [s, e]) {
-      ctx.fillStyle = '#ffffff';
-      ctx.strokeStyle = '#3b82f6';
+      ctx.fillStyle = "#ffffff";
+      ctx.strokeStyle = "#3b82f6";
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.arc(pt.x, pt.y, handleSize, 0, Math.PI * 2);
@@ -466,14 +565,14 @@ export function drawWall(
     const midX = (s.x + e.x) / 2;
     const midY = (s.y + e.y) / 2;
     const sz = 5;
-    ctx.fillStyle = '#3b82f6';
-    ctx.strokeStyle = '#1d4ed8';
+    ctx.fillStyle = "#3b82f6";
+    ctx.strokeStyle = "#1d4ed8";
     ctx.lineWidth = 1.5;
     ctx.fillRect(midX - sz, midY - sz, sz * 2, sz * 2);
     ctx.strokeRect(midX - sz, midY - sz, sz * 2, sz * 2);
     const perpX = -(dy / len) * 12;
     const perpY = (dx / len) * 12;
-    ctx.strokeStyle = '#3b82f680';
+    ctx.strokeStyle = "#3b82f680";
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(midX - perpX, midY - perpY);
@@ -483,8 +582,8 @@ export function drawWall(
     for (const sign of [1, -1]) {
       const ax = midX + perpX * sign;
       const ay = midY + perpY * sign;
-      const adx = perpX / 12 * arrowSz * sign;
-      const ady = perpY / 12 * arrowSz * sign;
+      const adx = (perpX / 12) * arrowSz * sign;
+      const ady = (perpY / 12) * arrowSz * sign;
       ctx.beginPath();
       ctx.moveTo(ax, ay);
       ctx.lineTo(ax - adx + ady * 0.5, ay - ady - adx * 0.5);
@@ -504,17 +603,19 @@ export function drawDoorOnWall(cs: CanvasState, wall: Wall, door: Door): void {
   const s = wts(cs, wpt.x, wpt.y);
 
   const tan = wallTangentAt(wall, t);
-  const ux = tan.x, uy = tan.y;
-  const nx = -uy, ny = ux;
+  const ux = tan.x,
+    uy = tan.y;
+  const nx = -uy,
+    ny = ux;
 
   const halfDoor = (door.width / 2) * zoom;
   const thickness = wallThicknessScreen(wall, zoom);
   const wallAngle = Math.atan2(uy, ux);
-  const swingDir = door.swingDirection === 'left' ? 1 : -1;
+  const swingDir = door.swingDirection === "left" ? 1 : -1;
   const sideFlip = (door.flipSide ?? false) ? -1 : 1;
 
   // Clear wall area for door gap
-  ctx.fillStyle = '#fafafa';
+  ctx.fillStyle = "#fafafa";
   const gux = ux * halfDoor;
   const guy = uy * halfDoor;
   const gnx = nx * (thickness / 2 + 1);
@@ -529,7 +630,7 @@ export function drawDoorOnWall(cs: CanvasState, wall: Wall, door: Door): void {
 
   // Door jamb ticks
   const jamb = thickness / 2 + 2;
-  ctx.strokeStyle = '#444';
+  ctx.strokeStyle = "#444";
   ctx.lineWidth = 1.5;
   for (const sign of [-1, 1]) {
     const jx = s.x + ux * halfDoor * sign;
@@ -540,46 +641,57 @@ export function drawDoorOnWall(cs: CanvasState, wall: Wall, door: Door): void {
     ctx.stroke();
   }
 
-  const doorType = door.type || 'single';
+  const doorType = door.type || "single";
 
-  if (doorType === 'single' || doorType === 'pocket') {
+  if (doorType === "single" || doorType === "pocket") {
     const r = door.width * zoom;
     const hingeX = s.x + ux * halfDoor * swingDir;
     const hingeY = s.y + uy * halfDoor * swingDir;
     const startAngle = wallAngle + (swingDir === 1 ? Math.PI : 0);
-    const endAngle = startAngle + (-swingDir) * sideFlip * (Math.PI / 2);
+    const endAngle = startAngle + -swingDir * sideFlip * (Math.PI / 2);
 
-    if (doorType === 'pocket') {
+    if (doorType === "pocket") {
       ctx.setLineDash([4, 3]);
-      ctx.strokeStyle = '#999';
+      ctx.strokeStyle = "#999";
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(hingeX, hingeY);
-      ctx.lineTo(hingeX + ux * halfDoor * 2 * swingDir, hingeY + uy * halfDoor * 2 * swingDir);
+      ctx.lineTo(
+        hingeX + ux * halfDoor * 2 * swingDir,
+        hingeY + uy * halfDoor * 2 * swingDir,
+      );
       ctx.stroke();
       ctx.setLineDash([]);
     } else {
-      ctx.strokeStyle = '#666';
+      ctx.strokeStyle = "#666";
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.arc(hingeX, hingeY, r, Math.min(startAngle, endAngle), Math.max(startAngle, endAngle));
+      ctx.arc(
+        hingeX,
+        hingeY,
+        r,
+        Math.min(startAngle, endAngle),
+        Math.max(startAngle, endAngle),
+      );
       ctx.stroke();
     }
 
     ctx.lineWidth = 2.5;
-    ctx.strokeStyle = '#444';
+    ctx.strokeStyle = "#444";
     ctx.beginPath();
     ctx.moveTo(hingeX, hingeY);
-    const panelAngle = doorType === 'pocket' ? startAngle : endAngle;
-    ctx.lineTo(hingeX + r * Math.cos(panelAngle), hingeY + r * Math.sin(panelAngle));
+    const panelAngle = doorType === "pocket" ? startAngle : endAngle;
+    ctx.lineTo(
+      hingeX + r * Math.cos(panelAngle),
+      hingeY + r * Math.sin(panelAngle),
+    );
     ctx.stroke();
 
-    ctx.fillStyle = '#444';
+    ctx.fillStyle = "#444";
     ctx.beginPath();
     ctx.arc(hingeX, hingeY, 2.5, 0, Math.PI * 2);
     ctx.fill();
-
-  } else if (doorType === 'double' || doorType === 'french') {
+  } else if (doorType === "double" || doorType === "french") {
     const r = halfDoor;
     for (const side of [-1, 1] as const) {
       const hx = s.x + ux * halfDoor * side;
@@ -588,43 +700,48 @@ export function drawDoorOnWall(cs: CanvasState, wall: Wall, door: Door): void {
       const sa = wallAngle + Math.PI * (side === 1 ? 1 : 0);
       const ea = sa + arcSwing * sideFlip * (Math.PI / 2);
 
-      ctx.strokeStyle = '#666';
+      ctx.strokeStyle = "#666";
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.arc(hx, hy, r, Math.min(sa, ea), Math.max(sa, ea));
       ctx.stroke();
 
       ctx.lineWidth = 2.5;
-      ctx.strokeStyle = '#444';
+      ctx.strokeStyle = "#444";
       ctx.beginPath();
       ctx.moveTo(hx, hy);
       ctx.lineTo(hx + r * Math.cos(ea), hy + r * Math.sin(ea));
       ctx.stroke();
 
-      ctx.fillStyle = '#444';
+      ctx.fillStyle = "#444";
       ctx.beginPath();
       ctx.arc(hx, hy, 2, 0, Math.PI * 2);
       ctx.fill();
     }
-    if (doorType === 'french') {
-      ctx.strokeStyle = '#aaa';
+    if (doorType === "french") {
+      ctx.strokeStyle = "#aaa";
       ctx.lineWidth = 0.5;
     }
-
-  } else if (doorType === 'sliding') {
+  } else if (doorType === "sliding") {
     const panelW = halfDoor * 0.9;
     const offset = thickness * 0.15 * sideFlip;
-    ctx.strokeStyle = '#444';
+    ctx.strokeStyle = "#444";
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(s.x - ux * halfDoor, s.y - uy * halfDoor);
     ctx.lineTo(s.x + ux * panelW * 0.1, s.y + uy * panelW * 0.1);
     ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(s.x - ux * panelW * 0.1 + nx * offset, s.y - uy * panelW * 0.1 + ny * offset);
-    ctx.lineTo(s.x + ux * halfDoor + nx * offset, s.y + uy * halfDoor + ny * offset);
+    ctx.moveTo(
+      s.x - ux * panelW * 0.1 + nx * offset,
+      s.y - uy * panelW * 0.1 + ny * offset,
+    );
+    ctx.lineTo(
+      s.x + ux * halfDoor + nx * offset,
+      s.y + uy * halfDoor + ny * offset,
+    );
     ctx.stroke();
-    ctx.strokeStyle = '#999';
+    ctx.strokeStyle = "#999";
     ctx.lineWidth = 1;
     const arrowY2 = ny * (thickness * 0.4);
     const arrowX2 = nx * (thickness * 0.4);
@@ -641,24 +758,25 @@ export function drawDoorOnWall(cs: CanvasState, wall: Wall, door: Door): void {
     ctx.lineTo(ahx, ahy);
     ctx.lineTo(ahx - ux * 6 - nx * 4, ahy - uy * 6 - ny * 4);
     ctx.stroke();
-
-  } else if (doorType === 'bifold') {
+  } else if (doorType === "bifold") {
     const panelCount = 4;
     const panelW = (door.width / panelCount) * zoom;
     const foldAngle = Math.PI / 6;
-    ctx.strokeStyle = '#444';
+    ctx.strokeStyle = "#444";
     ctx.lineWidth = 2;
     let px = s.x - ux * halfDoor;
     let py = s.y - uy * halfDoor;
     for (let i = 0; i < panelCount; i++) {
-      const angle = wallAngle + (i % 2 === 0 ? foldAngle * swingDir : -foldAngle * swingDir * 0.3);
+      const angle =
+        wallAngle +
+        (i % 2 === 0 ? foldAngle * swingDir : -foldAngle * swingDir * 0.3);
       const ex = px + panelW * Math.cos(angle);
       const ey = py + panelW * Math.sin(angle);
       ctx.beginPath();
       ctx.moveTo(px, py);
       ctx.lineTo(ex, ey);
       ctx.stroke();
-      ctx.fillStyle = '#666';
+      ctx.fillStyle = "#666";
       ctx.beginPath();
       ctx.arc(px, py, 1.5, 0, Math.PI * 2);
       ctx.fill();
@@ -677,14 +795,16 @@ export function drawWindowOnWall(cs: CanvasState, wall: Wall, win: Win): void {
   const s = wts(cs, wpt.x, wpt.y);
 
   const tan = wallTangentAt(wall, t);
-  const ux = tan.x, uy = tan.y;
-  const nx = -uy, ny = ux;
+  const ux = tan.x,
+    uy = tan.y;
+  const nx = -uy,
+    ny = ux;
 
   const hw = (win.width / 2) * zoom;
   const thickness = wallThicknessScreen(wall, zoom);
 
   // Clear wall area
-  ctx.fillStyle = '#fafafa';
+  ctx.fillStyle = "#fafafa";
   const gux = ux * hw;
   const guy = uy * hw;
   const gnx = nx * (thickness / 2 + 1);
@@ -697,78 +817,124 @@ export function drawWindowOnWall(cs: CanvasState, wall: Wall, win: Win): void {
   ctx.closePath();
   ctx.fill();
 
-  const winType = win.type || 'standard';
+  const winType = win.type || "standard";
   const gap = Math.max(2, thickness * 0.25);
 
-  if (winType === 'bay') {
+  if (winType === "bay") {
     const bayDepth = gap * 3;
     const sideW = hw * 0.3;
     const centerW = hw - sideW;
 
-    ctx.strokeStyle = '#555';
+    ctx.strokeStyle = "#555";
     ctx.lineWidth = 1.5;
 
     const lOuter = { x: s.x - ux * hw, y: s.y - uy * hw };
-    const lInner = { x: s.x - ux * centerW + nx * bayDepth, y: s.y - uy * centerW + ny * bayDepth };
-    ctx.beginPath(); ctx.moveTo(lOuter.x, lOuter.y); ctx.lineTo(lInner.x, lInner.y); ctx.stroke();
+    const lInner = {
+      x: s.x - ux * centerW + nx * bayDepth,
+      y: s.y - uy * centerW + ny * bayDepth,
+    };
+    ctx.beginPath();
+    ctx.moveTo(lOuter.x, lOuter.y);
+    ctx.lineTo(lInner.x, lInner.y);
+    ctx.stroke();
 
-    const rInner = { x: s.x + ux * centerW + nx * bayDepth, y: s.y + uy * centerW + ny * bayDepth };
-    ctx.beginPath(); ctx.moveTo(lInner.x, lInner.y); ctx.lineTo(rInner.x, rInner.y); ctx.stroke();
+    const rInner = {
+      x: s.x + ux * centerW + nx * bayDepth,
+      y: s.y + uy * centerW + ny * bayDepth,
+    };
+    ctx.beginPath();
+    ctx.moveTo(lInner.x, lInner.y);
+    ctx.lineTo(rInner.x, rInner.y);
+    ctx.stroke();
 
     const rOuter = { x: s.x + ux * hw, y: s.y + uy * hw };
-    ctx.beginPath(); ctx.moveTo(rInner.x, rInner.y); ctx.lineTo(rOuter.x, rOuter.y); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(rInner.x, rInner.y);
+    ctx.lineTo(rOuter.x, rOuter.y);
+    ctx.stroke();
 
-    ctx.strokeStyle = '#99c';
+    ctx.strokeStyle = "#99c";
     ctx.lineWidth = 1;
     const inset = 0.3;
     ctx.beginPath();
-    ctx.moveTo(lOuter.x + (lInner.x - lOuter.x) * inset, lOuter.y + (lInner.y - lOuter.y) * inset);
-    ctx.lineTo(lInner.x - (lInner.x - lOuter.x) * inset, lInner.y - (lInner.y - lOuter.y) * inset);
+    ctx.moveTo(
+      lOuter.x + (lInner.x - lOuter.x) * inset,
+      lOuter.y + (lInner.y - lOuter.y) * inset,
+    );
+    ctx.lineTo(
+      lInner.x - (lInner.x - lOuter.x) * inset,
+      lInner.y - (lInner.y - lOuter.y) * inset,
+    );
     ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(lInner.x + (rInner.x - lInner.x) * 0.05, lInner.y + (rInner.y - lInner.y) * 0.05);
-    ctx.lineTo(rInner.x - (rInner.x - lInner.x) * 0.05, rInner.y - (rInner.y - lInner.y) * 0.05);
+    ctx.moveTo(
+      lInner.x + (rInner.x - lInner.x) * 0.05,
+      lInner.y + (rInner.y - lInner.y) * 0.05,
+    );
+    ctx.lineTo(
+      rInner.x - (rInner.x - lInner.x) * 0.05,
+      rInner.y - (rInner.y - lInner.y) * 0.05,
+    );
     ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(rInner.x + (rOuter.x - rInner.x) * inset, rInner.y + (rOuter.y - rInner.y) * inset);
-    ctx.lineTo(rOuter.x - (rOuter.x - rInner.x) * inset, rOuter.y - (rOuter.y - rInner.y) * inset);
+    ctx.moveTo(
+      rInner.x + (rOuter.x - rInner.x) * inset,
+      rInner.y + (rOuter.y - rInner.y) * inset,
+    );
+    ctx.lineTo(
+      rOuter.x - (rOuter.x - rInner.x) * inset,
+      rOuter.y - (rOuter.y - rInner.y) * inset,
+    );
     ctx.stroke();
-
-  } else if (winType === 'sliding') {
-    ctx.strokeStyle = '#555';
+  } else if (winType === "sliding") {
+    ctx.strokeStyle = "#555";
     ctx.lineWidth = 1.5;
     const offset = gap * 0.4;
     ctx.beginPath();
     ctx.moveTo(s.x - ux * hw + nx * offset, s.y - uy * hw + ny * offset);
-    ctx.lineTo(s.x + ux * hw * 0.1 + nx * offset, s.y + uy * hw * 0.1 + ny * offset);
+    ctx.lineTo(
+      s.x + ux * hw * 0.1 + nx * offset,
+      s.y + uy * hw * 0.1 + ny * offset,
+    );
     ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(s.x - ux * hw * 0.1 - nx * offset, s.y - uy * hw * 0.1 - ny * offset);
+    ctx.moveTo(
+      s.x - ux * hw * 0.1 - nx * offset,
+      s.y - uy * hw * 0.1 - ny * offset,
+    );
     ctx.lineTo(s.x + ux * hw - nx * offset, s.y + uy * hw - ny * offset);
     ctx.stroke();
     ctx.lineWidth = 1;
     for (const side of [-1, 1]) {
       ctx.beginPath();
-      ctx.moveTo(s.x + ux * hw * side + nx * gap, s.y + uy * hw * side + ny * gap);
-      ctx.lineTo(s.x + ux * hw * side - nx * gap, s.y + uy * hw * side - ny * gap);
+      ctx.moveTo(
+        s.x + ux * hw * side + nx * gap,
+        s.y + uy * hw * side + ny * gap,
+      );
+      ctx.lineTo(
+        s.x + ux * hw * side - nx * gap,
+        s.y + uy * hw * side - ny * gap,
+      );
       ctx.stroke();
     }
-    ctx.strokeStyle = '#999';
+    ctx.strokeStyle = "#999";
     ctx.lineWidth = 1;
     const aOff = gap * 1.5;
     const ax1 = s.x - ux * hw * 0.3 + nx * aOff;
     const ay1 = s.y - uy * hw * 0.3 + ny * aOff;
     const ax2 = s.x + ux * hw * 0.3 + nx * aOff;
     const ay2 = s.y + uy * hw * 0.3 + ny * aOff;
-    ctx.beginPath(); ctx.moveTo(ax1, ay1); ctx.lineTo(ax2, ay2); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(ax1, ay1);
+    ctx.lineTo(ax2, ay2);
+    ctx.stroke();
     ctx.beginPath();
     ctx.moveTo(ax2 - ux * 5 + nx * 3, ay2 - uy * 5 + ny * 3);
     ctx.lineTo(ax2, ay2);
     ctx.lineTo(ax2 - ux * 5 - nx * 3, ay2 - uy * 5 - ny * 3);
     ctx.stroke();
-
-  } else if (winType === 'fixed') {
-    ctx.strokeStyle = '#555';
+  } else if (winType === "fixed") {
+    ctx.strokeStyle = "#555";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(s.x - ux * hw + nx * gap, s.y - uy * hw + ny * gap);
@@ -777,7 +943,7 @@ export function drawWindowOnWall(cs: CanvasState, wall: Wall, win: Win): void {
     ctx.lineTo(s.x - ux * hw - nx * gap, s.y - uy * hw - ny * gap);
     ctx.closePath();
     ctx.stroke();
-    ctx.strokeStyle = '#aab';
+    ctx.strokeStyle = "#aab";
     ctx.lineWidth = 0.8;
     ctx.beginPath();
     ctx.moveTo(s.x - ux * hw + nx * gap, s.y - uy * hw + ny * gap);
@@ -785,9 +951,8 @@ export function drawWindowOnWall(cs: CanvasState, wall: Wall, win: Win): void {
     ctx.moveTo(s.x + ux * hw + nx * gap, s.y + uy * hw + ny * gap);
     ctx.lineTo(s.x - ux * hw - nx * gap, s.y - uy * hw - ny * gap);
     ctx.stroke();
-
-  } else if (winType === 'casement') {
-    ctx.strokeStyle = '#555';
+  } else if (winType === "casement") {
+    ctx.strokeStyle = "#555";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(s.x - ux * hw + nx * gap, s.y - uy * hw + ny * gap);
@@ -808,17 +973,16 @@ export function drawWindowOnWall(cs: CanvasState, wall: Wall, win: Win): void {
     ctx.moveTo(s.x + ux * hw + nx * gap, s.y + uy * hw + ny * gap);
     ctx.lineTo(s.x + ux * hw - nx * gap, s.y + uy * hw - ny * gap);
     ctx.stroke();
-    ctx.strokeStyle = '#88a';
+    ctx.strokeStyle = "#88a";
     ctx.lineWidth = 0.8;
     ctx.beginPath();
     ctx.moveTo(s.x - ux * hw + nx * gap, s.y - uy * hw + ny * gap);
     ctx.lineTo(s.x + nx * gap * 2.5, s.y + ny * gap * 2.5);
     ctx.lineTo(s.x + ux * hw + nx * gap, s.y + uy * hw + ny * gap);
     ctx.stroke();
-
   } else {
     // Standard
-    ctx.strokeStyle = '#555';
+    ctx.strokeStyle = "#555";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(s.x - ux * hw + nx * gap, s.y - uy * hw + ny * gap);
@@ -845,7 +1009,12 @@ export function drawWindowOnWall(cs: CanvasState, wall: Wall, win: Win): void {
 
 // ── Door/Window distance dimensions ──────────────────────────────────
 
-export function drawDoorDistanceDimensions(cs: CanvasState, wall: Wall, door: Door, dimSettings: ProjectSettings): void {
+export function drawDoorDistanceDimensions(
+  cs: CanvasState,
+  wall: Wall,
+  door: Door,
+  dimSettings: ProjectSettings,
+): void {
   const { ctx, zoom } = cs;
   const wLength = wallLength(wall);
   if (wLength < 10) return;
@@ -859,37 +1028,66 @@ export function drawDoorDistanceDimensions(cs: CanvasState, wall: Wall, door: Do
   const wallEndScreen = wts(cs, wall.end.x, wall.end.y);
 
   if (dimSettings.showExtensionLines) {
-    ctx.strokeStyle = '#3b82f6';
+    ctx.strokeStyle = "#3b82f6";
     ctx.lineWidth = 1;
     ctx.setLineDash([3, 3]);
-    ctx.beginPath(); ctx.moveTo(dcScreen.x, dcScreen.y); ctx.lineTo(wallStartScreen.x, wallStartScreen.y); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(dcScreen.x, dcScreen.y); ctx.lineTo(wallEndScreen.x, wallEndScreen.y); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(dcScreen.x, dcScreen.y);
+    ctx.lineTo(wallStartScreen.x, wallStartScreen.y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(dcScreen.x, dcScreen.y);
+    ctx.lineTo(wallEndScreen.x, wallEndScreen.y);
+    ctx.stroke();
     ctx.setLineDash([]);
   }
 
   const fontSize = Math.max(10, 11 * zoom);
   ctx.font = `${fontSize}px sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
 
   for (const [midPoint, dist] of [
-    [{ x: (dcScreen.x + wallStartScreen.x) / 2, y: (dcScreen.y + wallStartScreen.y) / 2 }, distFromA],
-    [{ x: (dcScreen.x + wallEndScreen.x) / 2, y: (dcScreen.y + wallEndScreen.y) / 2 }, distFromB],
+    [
+      {
+        x: (dcScreen.x + wallStartScreen.x) / 2,
+        y: (dcScreen.y + wallStartScreen.y) / 2,
+      },
+      distFromA,
+    ],
+    [
+      {
+        x: (dcScreen.x + wallEndScreen.x) / 2,
+        y: (dcScreen.y + wallEndScreen.y) / 2,
+      },
+      distFromB,
+    ],
   ] as [{ x: number; y: number }, number][]) {
     const labelText = formatLength(dist, dimSettings.units);
     const textWidth = ctx.measureText(labelText).width;
     const pillWidth = textWidth + 12;
     const pillHeight = fontSize + 6;
-    ctx.fillStyle = '#3b82f6';
+    ctx.fillStyle = "#3b82f6";
     ctx.beginPath();
-    ctx.roundRect(midPoint.x - pillWidth / 2, midPoint.y - pillHeight / 2, pillWidth, pillHeight, pillHeight / 2);
+    ctx.roundRect(
+      midPoint.x - pillWidth / 2,
+      midPoint.y - pillHeight / 2,
+      pillWidth,
+      pillHeight,
+      pillHeight / 2,
+    );
     ctx.fill();
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = "#ffffff";
     ctx.fillText(labelText, midPoint.x, midPoint.y);
   }
 }
 
-export function drawWindowDistanceDimensions(cs: CanvasState, wall: Wall, window: Win, dimSettings: ProjectSettings): void {
+export function drawWindowDistanceDimensions(
+  cs: CanvasState,
+  wall: Wall,
+  window: Win,
+  dimSettings: ProjectSettings,
+): void {
   const { ctx, zoom } = cs;
   const wLength = wallLength(wall);
   if (wLength < 10) return;
@@ -903,39 +1101,68 @@ export function drawWindowDistanceDimensions(cs: CanvasState, wall: Wall, window
   const wallEndScreen = wts(cs, wall.end.x, wall.end.y);
 
   if (dimSettings.showExtensionLines) {
-    ctx.strokeStyle = '#3b82f6';
+    ctx.strokeStyle = "#3b82f6";
     ctx.lineWidth = 1;
     ctx.setLineDash([3, 3]);
-    ctx.beginPath(); ctx.moveTo(wcScreen.x, wcScreen.y); ctx.lineTo(wallStartScreen.x, wallStartScreen.y); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(wcScreen.x, wcScreen.y); ctx.lineTo(wallEndScreen.x, wallEndScreen.y); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(wcScreen.x, wcScreen.y);
+    ctx.lineTo(wallStartScreen.x, wallStartScreen.y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(wcScreen.x, wcScreen.y);
+    ctx.lineTo(wallEndScreen.x, wallEndScreen.y);
+    ctx.stroke();
     ctx.setLineDash([]);
   }
 
   const fontSize = Math.max(10, 11 * zoom);
   ctx.font = `${fontSize}px sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
 
   for (const [midPoint, dist] of [
-    [{ x: (wcScreen.x + wallStartScreen.x) / 2, y: (wcScreen.y + wallStartScreen.y) / 2 }, distFromA],
-    [{ x: (wcScreen.x + wallEndScreen.x) / 2, y: (wcScreen.y + wallEndScreen.y) / 2 }, distFromB],
+    [
+      {
+        x: (wcScreen.x + wallStartScreen.x) / 2,
+        y: (wcScreen.y + wallStartScreen.y) / 2,
+      },
+      distFromA,
+    ],
+    [
+      {
+        x: (wcScreen.x + wallEndScreen.x) / 2,
+        y: (wcScreen.y + wallEndScreen.y) / 2,
+      },
+      distFromB,
+    ],
   ] as [{ x: number; y: number }, number][]) {
     const labelText = formatLength(dist, dimSettings.units);
     const textWidth = ctx.measureText(labelText).width;
     const pillWidth = textWidth + 12;
     const pillHeight = fontSize + 6;
-    ctx.fillStyle = '#3b82f6';
+    ctx.fillStyle = "#3b82f6";
     ctx.beginPath();
-    ctx.roundRect(midPoint.x - pillWidth / 2, midPoint.y - pillHeight / 2, pillWidth, pillHeight, pillHeight / 2);
+    ctx.roundRect(
+      midPoint.x - pillWidth / 2,
+      midPoint.y - pillHeight / 2,
+      pillWidth,
+      pillHeight,
+      pillHeight / 2,
+    );
     ctx.fill();
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = "#ffffff";
     ctx.fillText(labelText, midPoint.x, midPoint.y);
   }
 }
 
 // ── Furniture drawing ────────────────────────────────────────────────
 
-export function drawFurnitureItem(cs: CanvasState, item: FurnitureItem, selected: boolean): void {
+export function drawFurnitureItem(
+  cs: CanvasState,
+  item: FurnitureItem,
+  selected: boolean,
+  palette?: CanvasPalette,
+): void {
   const { ctx, zoom } = cs;
   const cat = getCatalogItem(item.catalogId);
   if (!cat) return;
@@ -952,16 +1179,16 @@ export function drawFurnitureItem(cs: CanvasState, item: FurnitureItem, selected
   ctx.scale(Math.sign(sx) || 1, Math.sign(sy) || 1);
 
   const itemColor = item.color ?? cat.color;
-  const strokeColor = selected ? '#3b82f6' : itemColor;
+  const strokeColor = selected ? "#3b82f6" : itemColor;
   ctx.lineWidth = selected ? 2 : 1;
-  if ('pattern' in cat && cat.pattern && cat.src) {
+  if ("pattern" in cat && cat.pattern && cat.src) {
     const image = getPatternImage(cat.src);
     if (image?.complete && image.naturalWidth > 0) {
       ctx.drawImage(image, -w / 2, -d / 2, w, d);
     } else {
       drawCustomObjectShape(ctx, cat.shape, w, d, itemColor, strokeColor);
     }
-  } else if ('pattern' in cat && cat.pattern) {
+  } else if ("pattern" in cat && cat.pattern) {
     drawCustomObjectShape(ctx, cat.shape, w, d, itemColor, strokeColor);
   } else {
     drawFurnitureIcon(ctx, item.catalogId, w, d, itemColor, strokeColor);
@@ -969,50 +1196,66 @@ export function drawFurnitureItem(cs: CanvasState, item: FurnitureItem, selected
 
   const fontSize = Math.max(8, Math.min(12, Math.min(w, d) * 0.2));
   if (Math.min(w, d) > 20) {
-    const label = typeof item.label === 'string' ? { text: item.label } : item.label;
-    ctx.fillStyle = label?.color ?? '#374151';
+    const label =
+      typeof item.label === "string" ? { text: item.label } : item.label;
+    ctx.fillStyle = label?.color ?? palette?.text ?? "#374151";
     ctx.font = `${label?.fontSize ?? fontSize * 0.7}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(label?.text ?? cat.name, (label?.offsetX ?? 0) * zoom, d / 2 + (label?.offsetY !== undefined ? label.offsetY * zoom : fontSize * 0.8));
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(
+      label?.text ?? cat.name,
+      (label?.offsetX ?? 0) * zoom,
+      d / 2 +
+        (label?.offsetY !== undefined ? label.offsetY * zoom : fontSize * 0.8),
+    );
   }
 
   if (selected) {
-    ctx.strokeStyle = '#3b82f6';
+    ctx.strokeStyle = "#3b82f6";
     ctx.lineWidth = 1;
     ctx.setLineDash([4, 3]);
     ctx.strokeRect(-w / 2 - 2, -d / 2 - 2, w + 4, d + 4);
     ctx.setLineDash([]);
 
     const hs = 5;
-    ctx.fillStyle = '#ffffff';
-    ctx.strokeStyle = '#3b82f6';
+    ctx.fillStyle = "#ffffff";
+    ctx.strokeStyle = "#3b82f6";
     ctx.lineWidth = 1.5;
     // Corner handles
-    for (const [hx, hy] of [[-w/2, -d/2], [w/2, -d/2], [-w/2, d/2], [w/2, d/2]]) {
+    for (const [hx, hy] of [
+      [-w / 2, -d / 2],
+      [w / 2, -d / 2],
+      [-w / 2, d / 2],
+      [w / 2, d / 2],
+    ]) {
       ctx.fillRect(hx - hs, hy - hs, hs * 2, hs * 2);
       ctx.strokeRect(hx - hs, hy - hs, hs * 2, hs * 2);
     }
 
     // Edge midpoint handles
     const ehs = 4; // slightly smaller
-    for (const [hx, hy] of [[0, -d/2], [0, d/2], [-w/2, 0], [w/2, 0]]) {
+    for (const [hx, hy] of [
+      [0, -d / 2],
+      [0, d / 2],
+      [-w / 2, 0],
+      [w / 2, 0],
+    ]) {
       ctx.fillRect(hx - ehs, hy - ehs, ehs * 2, ehs * 2);
       ctx.strokeRect(hx - ehs, hy - ehs, ehs * 2, ehs * 2);
     }
 
     const rotY = -d / 2 - 18;
-    ctx.strokeStyle = '#3b82f6';
+    ctx.strokeStyle = "#3b82f6";
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, -d / 2 - 2);
     ctx.lineTo(0, rotY + 5);
     ctx.stroke();
-    ctx.fillStyle = '#3b82f6';
+    ctx.fillStyle = "#3b82f6";
     ctx.beginPath();
     ctx.arc(0, rotY, 5, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#ffffff';
+    ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 1.2;
     ctx.beginPath();
     ctx.arc(0, rotY, 3, -Math.PI * 0.8, Math.PI * 0.4);
@@ -1030,11 +1273,18 @@ export function drawFurnitureItem(cs: CanvasState, item: FurnitureItem, selected
   ctx.restore();
 }
 
-function drawCustomObjectShape(ctx: CanvasRenderingContext2D, shape: 'rectangle' | 'circle' | undefined, w: number, d: number, fill: string, stroke: string): void {
+function drawCustomObjectShape(
+  ctx: CanvasRenderingContext2D,
+  shape: "rectangle" | "circle" | undefined,
+  w: number,
+  d: number,
+  fill: string,
+  stroke: string,
+): void {
   ctx.fillStyle = `${fill}33`;
   ctx.strokeStyle = stroke;
   ctx.beginPath();
-  if (shape === 'circle') ctx.ellipse(0, 0, w / 2, d / 2, 0, 0, Math.PI * 2);
+  if (shape === "circle") ctx.ellipse(0, 0, w / 2, d / 2, 0, 0, Math.PI * 2);
   else ctx.rect(-w / 2, -d / 2, w, d);
   ctx.fill();
   ctx.stroke();
@@ -1042,28 +1292,33 @@ function drawCustomObjectShape(ctx: CanvasRenderingContext2D, shape: 'rectangle'
 
 // ── Stair drawing ────────────────────────────────────────────────────
 
-export function drawStair(cs: CanvasState, stair: Stair, selected: boolean): void {
+export function drawStair(
+  cs: CanvasState,
+  stair: Stair,
+  selected: boolean,
+  palette?: CanvasPalette,
+): void {
   const { ctx, zoom } = cs;
   const s = wts(cs, stair.position.x, stair.position.y);
   const w = stair.width * zoom;
   const d = stair.depth * zoom;
   const angle = (stair.rotation * Math.PI) / 180;
-  const type = stair.stairType || 'straight';
+  const type = stair.stairType || "straight";
 
   ctx.save();
   ctx.translate(s.x, s.y);
   ctx.rotate(angle);
 
-  const fillCol = selected ? '#bfdbfe80' : '#e5e7eb80';
-  const strokeCol = selected ? '#3b82f6' : '#555';
-  const treadCol = selected ? '#3b82f6' : '#888';
+  const fillCol = selected ? "#bfdbfe80" : "#e5e7eb80";
+  const strokeCol = selected ? "#3b82f6" : "#555";
+  const treadCol = selected ? "#3b82f6" : "#888";
 
-  function drawStairArrowLocal(direction: 'up' | 'down') {
-    ctx.fillStyle = selected ? '#3b82f6' : '#555';
-    ctx.strokeStyle = selected ? '#3b82f6' : '#555';
+  function drawStairArrowLocal(direction: "up" | "down") {
+    ctx.fillStyle = selected ? "#3b82f6" : "#555";
+    ctx.strokeStyle = selected ? "#3b82f6" : "#555";
     ctx.lineWidth = 1.5;
-    const arrowY = direction === 'up' ? -d / 2 + d * 0.15 : d / 2 - d * 0.15;
-    const arrowDir = direction === 'up' ? -1 : 1;
+    const arrowY = direction === "up" ? -d / 2 + d * 0.15 : d / 2 - d * 0.15;
+    const arrowDir = direction === "up" ? -1 : 1;
     ctx.beginPath();
     ctx.moveTo(0, arrowY + arrowDir * d * 0.3);
     ctx.lineTo(0, arrowY);
@@ -1077,16 +1332,16 @@ export function drawStair(cs: CanvasState, stair: Stair, selected: boolean): voi
   }
 
   function drawStairLabelLocal() {
-    ctx.fillStyle = '#374151';
+    ctx.fillStyle = palette?.text ?? "#374151";
     ctx.font = `${Math.max(8, 10 * zoom)}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    const sType = stair.stairType || 'straight';
-    const typeLabel = sType === 'straight' ? '' : ` (${sType})`;
-    ctx.fillText((stair.direction === 'up' ? 'UP' : 'DN') + typeLabel, 0, 0);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const sType = stair.stairType || "straight";
+    const typeLabel = sType === "straight" ? "" : ` (${sType})`;
+    ctx.fillText((stair.direction === "up" ? "UP" : "DN") + typeLabel, 0, 0);
   }
 
-  if (type === 'straight') {
+  if (type === "straight") {
     ctx.fillStyle = fillCol;
     ctx.strokeStyle = strokeCol;
     ctx.lineWidth = selected ? 2 : 1;
@@ -1097,91 +1352,191 @@ export function drawStair(cs: CanvasState, stair: Stair, selected: boolean): voi
     const treadSpacing = d / stair.riserCount;
     for (let i = 1; i < stair.riserCount; i++) {
       const y = -d / 2 + i * treadSpacing;
-      ctx.beginPath(); ctx.moveTo(-w / 2, y); ctx.lineTo(w / 2, y); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-w / 2, y);
+      ctx.lineTo(w / 2, y);
+      ctx.stroke();
     }
     drawStairArrowLocal(stair.direction);
     drawStairLabelLocal();
-
-  } else if (type === 'l-shaped') {
+  } else if (type === "l-shaped") {
     const halfRisers = Math.floor(stair.riserCount / 2);
     const run1D = d / 2;
     const run2W = d / 2;
-    ctx.fillStyle = fillCol; ctx.strokeStyle = strokeCol; ctx.lineWidth = selected ? 2 : 1;
-    ctx.fillRect(-w / 2, 0, w, run1D); ctx.strokeRect(-w / 2, 0, w, run1D);
-    ctx.strokeStyle = treadCol; ctx.lineWidth = 0.5;
+    ctx.fillStyle = fillCol;
+    ctx.strokeStyle = strokeCol;
+    ctx.lineWidth = selected ? 2 : 1;
+    ctx.fillRect(-w / 2, 0, w, run1D);
+    ctx.strokeRect(-w / 2, 0, w, run1D);
+    ctx.strokeStyle = treadCol;
+    ctx.lineWidth = 0.5;
     const t1 = run1D / halfRisers;
-    for (let i = 1; i < halfRisers; i++) { const y = i * t1; ctx.beginPath(); ctx.moveTo(-w / 2, y); ctx.lineTo(w / 2, y); ctx.stroke(); }
-    ctx.fillStyle = fillCol; ctx.strokeStyle = strokeCol; ctx.lineWidth = selected ? 2 : 1;
-    ctx.fillRect(-w / 2, -w / 2, w, w / 2); ctx.strokeRect(-w / 2, -w / 2, w, w / 2);
+    for (let i = 1; i < halfRisers; i++) {
+      const y = i * t1;
+      ctx.beginPath();
+      ctx.moveTo(-w / 2, y);
+      ctx.lineTo(w / 2, y);
+      ctx.stroke();
+    }
+    ctx.fillStyle = fillCol;
+    ctx.strokeStyle = strokeCol;
+    ctx.lineWidth = selected ? 2 : 1;
+    ctx.fillRect(-w / 2, -w / 2, w, w / 2);
+    ctx.strokeRect(-w / 2, -w / 2, w, w / 2);
     const run2Risers = stair.riserCount - halfRisers;
-    ctx.fillRect(w / 2, -w / 2, run2W, w); ctx.strokeRect(w / 2, -w / 2, run2W, w);
-    ctx.strokeStyle = treadCol; ctx.lineWidth = 0.5;
+    ctx.fillRect(w / 2, -w / 2, run2W, w);
+    ctx.strokeRect(w / 2, -w / 2, run2W, w);
+    ctx.strokeStyle = treadCol;
+    ctx.lineWidth = 0.5;
     const t2 = run2W / run2Risers;
-    for (let i = 1; i < run2Risers; i++) { const x = w / 2 + i * t2; ctx.beginPath(); ctx.moveTo(x, -w / 2); ctx.lineTo(x, w / 2); ctx.stroke(); }
-    ctx.fillStyle = selected ? '#3b82f6' : '#555'; ctx.strokeStyle = selected ? '#3b82f6' : '#555'; ctx.lineWidth = 1.5;
+    for (let i = 1; i < run2Risers; i++) {
+      const x = w / 2 + i * t2;
+      ctx.beginPath();
+      ctx.moveTo(x, -w / 2);
+      ctx.lineTo(x, w / 2);
+      ctx.stroke();
+    }
+    ctx.fillStyle = selected ? "#3b82f6" : "#555";
+    ctx.strokeStyle = selected ? "#3b82f6" : "#555";
+    ctx.lineWidth = 1.5;
     const ay = run1D * 0.7;
-    ctx.beginPath(); ctx.moveTo(0, ay); ctx.lineTo(0, ay - run1D * 0.3); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, ay - run1D * 0.3); ctx.lineTo(-w * 0.08, ay - run1D * 0.22); ctx.lineTo(w * 0.08, ay - run1D * 0.22); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(0, ay);
+    ctx.lineTo(0, ay - run1D * 0.3);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, ay - run1D * 0.3);
+    ctx.lineTo(-w * 0.08, ay - run1D * 0.22);
+    ctx.lineTo(w * 0.08, ay - run1D * 0.22);
+    ctx.closePath();
+    ctx.fill();
     drawStairLabelLocal();
-
-  } else if (type === 'u-shaped') {
+  } else if (type === "u-shaped") {
     const halfRisers = Math.floor(stair.riserCount / 2);
     const runW = (w - w * 0.15) / 2;
-    ctx.fillStyle = fillCol; ctx.strokeStyle = strokeCol; ctx.lineWidth = selected ? 2 : 1;
-    ctx.fillRect(-w / 2, -d / 2, runW, d); ctx.strokeRect(-w / 2, -d / 2, runW, d);
-    ctx.strokeStyle = treadCol; ctx.lineWidth = 0.5;
+    ctx.fillStyle = fillCol;
+    ctx.strokeStyle = strokeCol;
+    ctx.lineWidth = selected ? 2 : 1;
+    ctx.fillRect(-w / 2, -d / 2, runW, d);
+    ctx.strokeRect(-w / 2, -d / 2, runW, d);
+    ctx.strokeStyle = treadCol;
+    ctx.lineWidth = 0.5;
     const tU = d / halfRisers;
-    for (let i = 1; i < halfRisers; i++) { const y = -d / 2 + i * tU; ctx.beginPath(); ctx.moveTo(-w / 2, y); ctx.lineTo(-w / 2 + runW, y); ctx.stroke(); }
+    for (let i = 1; i < halfRisers; i++) {
+      const y = -d / 2 + i * tU;
+      ctx.beginPath();
+      ctx.moveTo(-w / 2, y);
+      ctx.lineTo(-w / 2 + runW, y);
+      ctx.stroke();
+    }
     const run2Risers = stair.riserCount - halfRisers;
-    ctx.fillStyle = fillCol; ctx.strokeStyle = strokeCol; ctx.lineWidth = selected ? 2 : 1;
-    ctx.fillRect(w / 2 - runW, -d / 2, runW, d); ctx.strokeRect(w / 2 - runW, -d / 2, runW, d);
-    ctx.strokeStyle = treadCol; ctx.lineWidth = 0.5;
+    ctx.fillStyle = fillCol;
+    ctx.strokeStyle = strokeCol;
+    ctx.lineWidth = selected ? 2 : 1;
+    ctx.fillRect(w / 2 - runW, -d / 2, runW, d);
+    ctx.strokeRect(w / 2 - runW, -d / 2, runW, d);
+    ctx.strokeStyle = treadCol;
+    ctx.lineWidth = 0.5;
     const tU2 = d / run2Risers;
-    for (let i = 1; i < run2Risers; i++) { const y = -d / 2 + i * tU2; ctx.beginPath(); ctx.moveTo(w / 2 - runW, y); ctx.lineTo(w / 2, y); ctx.stroke(); }
-    ctx.fillStyle = fillCol; ctx.strokeStyle = strokeCol; ctx.lineWidth = selected ? 2 : 1;
-    ctx.fillRect(-w / 2, -d / 2 - w * 0.1, w, w * 0.1); ctx.strokeRect(-w / 2, -d / 2 - w * 0.1, w, w * 0.1);
-    ctx.fillStyle = selected ? '#3b82f6' : '#555'; ctx.strokeStyle = selected ? '#3b82f6' : '#555'; ctx.lineWidth = 1.5;
+    for (let i = 1; i < run2Risers; i++) {
+      const y = -d / 2 + i * tU2;
+      ctx.beginPath();
+      ctx.moveTo(w / 2 - runW, y);
+      ctx.lineTo(w / 2, y);
+      ctx.stroke();
+    }
+    ctx.fillStyle = fillCol;
+    ctx.strokeStyle = strokeCol;
+    ctx.lineWidth = selected ? 2 : 1;
+    ctx.fillRect(-w / 2, -d / 2 - w * 0.1, w, w * 0.1);
+    ctx.strokeRect(-w / 2, -d / 2 - w * 0.1, w, w * 0.1);
+    ctx.fillStyle = selected ? "#3b82f6" : "#555";
+    ctx.strokeStyle = selected ? "#3b82f6" : "#555";
+    ctx.lineWidth = 1.5;
     const lx = -w / 2 + runW / 2;
-    ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx, -d * 0.2); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(lx, -d * 0.2); ctx.lineTo(lx - runW * 0.15, -d * 0.14); ctx.lineTo(lx + runW * 0.15, -d * 0.14); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(lx, 0);
+    ctx.lineTo(lx, -d * 0.2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(lx, -d * 0.2);
+    ctx.lineTo(lx - runW * 0.15, -d * 0.14);
+    ctx.lineTo(lx + runW * 0.15, -d * 0.14);
+    ctx.closePath();
+    ctx.fill();
     const rx = w / 2 - runW / 2;
-    ctx.beginPath(); ctx.moveTo(rx, 0); ctx.lineTo(rx, d * 0.2); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(rx, d * 0.2); ctx.lineTo(rx - runW * 0.15, d * 0.14); ctx.lineTo(rx + runW * 0.15, d * 0.14); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(rx, 0);
+    ctx.lineTo(rx, d * 0.2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(rx, d * 0.2);
+    ctx.lineTo(rx - runW * 0.15, d * 0.14);
+    ctx.lineTo(rx + runW * 0.15, d * 0.14);
+    ctx.closePath();
+    ctx.fill();
     drawStairLabelLocal();
-
-  } else if (type === 'spiral') {
+  } else if (type === "spiral") {
     const r = Math.min(w, d) / 2;
-    ctx.fillStyle = fillCol; ctx.strokeStyle = strokeCol; ctx.lineWidth = selected ? 2 : 1;
-    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = fillCol;
+    ctx.strokeStyle = strokeCol;
+    ctx.lineWidth = selected ? 2 : 1;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
     const postR = r * 0.12;
-    ctx.fillStyle = strokeCol; ctx.beginPath(); ctx.arc(0, 0, postR, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = treadCol; ctx.lineWidth = 0.5;
+    ctx.fillStyle = strokeCol;
+    ctx.beginPath();
+    ctx.arc(0, 0, postR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = treadCol;
+    ctx.lineWidth = 0.5;
     const totalAngle = Math.PI * 1.75;
     const startAngle = -Math.PI / 2;
     for (let i = 0; i <= stair.riserCount; i++) {
       const a = startAngle + (i / stair.riserCount) * totalAngle;
-      ctx.beginPath(); ctx.moveTo(postR * Math.cos(a), postR * Math.sin(a)); ctx.lineTo(r * Math.cos(a), r * Math.sin(a)); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(postR * Math.cos(a), postR * Math.sin(a));
+      ctx.lineTo(r * Math.cos(a), r * Math.sin(a));
+      ctx.stroke();
     }
-    ctx.strokeStyle = selected ? '#3b82f6' : '#555'; ctx.fillStyle = selected ? '#3b82f6' : '#555'; ctx.lineWidth = 1.5;
+    ctx.strokeStyle = selected ? "#3b82f6" : "#555";
+    ctx.fillStyle = selected ? "#3b82f6" : "#555";
+    ctx.lineWidth = 1.5;
     const arrowR = r * 0.7;
     const aEnd = startAngle + totalAngle * 0.85;
-    ctx.beginPath(); ctx.arc(0, 0, arrowR, startAngle + totalAngle * 0.15, aEnd, false); ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, arrowR, startAngle + totalAngle * 0.15, aEnd, false);
+    ctx.stroke();
     const ax2 = arrowR * Math.cos(aEnd);
     const ay2 = arrowR * Math.sin(aEnd);
     const tangent = aEnd + Math.PI / 2;
-    ctx.beginPath(); ctx.moveTo(ax2, ay2);
-    ctx.lineTo(ax2 + 6 * Math.cos(tangent + 0.4), ay2 + 6 * Math.sin(tangent + 0.4));
-    ctx.lineTo(ax2 + 6 * Math.cos(tangent - 0.4), ay2 + 6 * Math.sin(tangent - 0.4));
-    ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#374151'; ctx.font = `${Math.max(8, 10 * zoom)}px sans-serif`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(stair.direction === 'up' ? 'UP' : 'DN', 0, r + 12 * zoom);
+    ctx.beginPath();
+    ctx.moveTo(ax2, ay2);
+    ctx.lineTo(
+      ax2 + 6 * Math.cos(tangent + 0.4),
+      ay2 + 6 * Math.sin(tangent + 0.4),
+    );
+    ctx.lineTo(
+      ax2 + 6 * Math.cos(tangent - 0.4),
+      ay2 + 6 * Math.sin(tangent - 0.4),
+    );
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#374151";
+    ctx.font = `${Math.max(8, 10 * zoom)}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(stair.direction === "up" ? "UP" : "DN", 0, r + 12 * zoom);
   }
 
   if (selected) {
-    ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
-    const bw = type === 'spiral' ? Math.min(w, d) : w;
-    const bd = type === 'spiral' ? Math.min(w, d) : d;
+    ctx.strokeStyle = "#3b82f6";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 3]);
+    const bw = type === "spiral" ? Math.min(w, d) : w;
+    const bd = type === "spiral" ? Math.min(w, d) : d;
     ctx.strokeRect(-bw / 2 - 2, -bd / 2 - 2, bw + 4, bd + 4);
     ctx.setLineDash([]);
   }
@@ -1191,7 +1546,11 @@ export function drawStair(cs: CanvasState, stair: Stair, selected: boolean): voi
 
 // ── Column drawing ───────────────────────────────────────────────────
 
-export function drawColumn(cs: CanvasState, col: Column, selected: boolean): void {
+export function drawColumn(
+  cs: CanvasState,
+  col: Column,
+  selected: boolean,
+): void {
   const { ctx, zoom } = cs;
   const s = wts(cs, col.position.x, col.position.y);
   const r = (col.diameter / 2) * zoom;
@@ -1199,28 +1558,49 @@ export function drawColumn(cs: CanvasState, col: Column, selected: boolean): voi
   ctx.save();
   ctx.translate(s.x, s.y);
 
-  if (col.shape === 'round') {
-    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.fillStyle = selected ? '#bfdbfe' : col.color; ctx.fill();
-    ctx.strokeStyle = selected ? '#3b82f6' : '#555'; ctx.lineWidth = selected ? 2 : 1; ctx.stroke();
-    ctx.strokeStyle = selected ? '#3b82f680' : '#88888880'; ctx.lineWidth = 0.5;
-    ctx.beginPath(); ctx.moveTo(-r, -r); ctx.lineTo(r, r); ctx.moveTo(-r, r); ctx.lineTo(r, -r); ctx.stroke();
+  if (col.shape === "round") {
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fillStyle = selected ? "#bfdbfe" : col.color;
+    ctx.fill();
+    ctx.strokeStyle = selected ? "#3b82f6" : "#555";
+    ctx.lineWidth = selected ? 2 : 1;
+    ctx.stroke();
+    ctx.strokeStyle = selected ? "#3b82f680" : "#88888880";
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(-r, -r);
+    ctx.lineTo(r, r);
+    ctx.moveTo(-r, r);
+    ctx.lineTo(r, -r);
+    ctx.stroke();
   } else {
     const angle = (col.rotation * Math.PI) / 180;
     ctx.rotate(angle);
     const side = col.diameter * zoom;
-    ctx.fillStyle = selected ? '#bfdbfe' : col.color;
+    ctx.fillStyle = selected ? "#bfdbfe" : col.color;
     ctx.fillRect(-side / 2, -side / 2, side, side);
-    ctx.strokeStyle = selected ? '#3b82f6' : '#555'; ctx.lineWidth = selected ? 2 : 1;
+    ctx.strokeStyle = selected ? "#3b82f6" : "#555";
+    ctx.lineWidth = selected ? 2 : 1;
     ctx.strokeRect(-side / 2, -side / 2, side, side);
-    ctx.strokeStyle = selected ? '#3b82f680' : '#88888880'; ctx.lineWidth = 0.5;
-    ctx.beginPath(); ctx.moveTo(-side / 2, -side / 2); ctx.lineTo(side / 2, side / 2); ctx.moveTo(-side / 2, side / 2); ctx.lineTo(side / 2, -side / 2); ctx.stroke();
+    ctx.strokeStyle = selected ? "#3b82f680" : "#88888880";
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(-side / 2, -side / 2);
+    ctx.lineTo(side / 2, side / 2);
+    ctx.moveTo(-side / 2, side / 2);
+    ctx.lineTo(side / 2, -side / 2);
+    ctx.stroke();
   }
 
   if (selected) {
-    ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
-    if (col.shape === 'round') {
-      ctx.beginPath(); ctx.arc(0, 0, r + 4, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = "#3b82f6";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 3]);
+    if (col.shape === "round") {
+      ctx.beginPath();
+      ctx.arc(0, 0, r + 4, 0, Math.PI * 2);
+      ctx.stroke();
     } else {
       const side = col.diameter * zoom;
       ctx.strokeRect(-side / 2 - 4, -side / 2 - 4, side + 8, side + 8);
@@ -1233,35 +1613,51 @@ export function drawColumn(cs: CanvasState, col: Column, selected: boolean): voi
 
 // ── Guide lines ──────────────────────────────────────────────────────
 
-export function drawGuides(cs: CanvasState, floor: Floor, selectedGuideId: string | null, RULER_SIZE: number): void {
+export function drawGuides(
+  cs: CanvasState,
+  floor: Floor,
+  selectedGuideId: string | null,
+  RULER_SIZE: number,
+): void {
   if (!cs.ctx) return;
   const { ctx, width, height } = cs;
   const guides = floor.guides ?? [];
   const R = RULER_SIZE;
   for (const g of guides) {
     const selected = g.id === selectedGuideId;
-    const color = g.orientation === 'horizontal' ? '#00bcd4' : '#e040fb';
+    const color = g.orientation === "horizontal" ? "#00bcd4" : "#e040fb";
     ctx.save();
-    ctx.strokeStyle = color; ctx.lineWidth = selected ? 1.5 : 1;
-    ctx.setLineDash([6, 4]); ctx.globalAlpha = selected ? 1.0 : 0.7;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = selected ? 1.5 : 1;
+    ctx.setLineDash([6, 4]);
+    ctx.globalAlpha = selected ? 1.0 : 0.7;
     ctx.beginPath();
-    if (g.orientation === 'horizontal') {
+    if (g.orientation === "horizontal") {
       const sy = wts(cs, 0, g.position).y;
-      ctx.moveTo(R, sy); ctx.lineTo(width, sy);
+      ctx.moveTo(R, sy);
+      ctx.lineTo(width, sy);
     } else {
       const sx = wts(cs, g.position, 0).x;
-      ctx.moveTo(sx, R); ctx.lineTo(sx, height);
+      ctx.moveTo(sx, R);
+      ctx.lineTo(sx, height);
     }
-    ctx.stroke(); ctx.setLineDash([]);
+    ctx.stroke();
+    ctx.setLineDash([]);
 
-    ctx.font = '10px sans-serif'; ctx.fillStyle = color; ctx.globalAlpha = 1;
-    const label = formatLength(g.position, 'metric');
-    if (g.orientation === 'horizontal') {
+    ctx.font = "10px sans-serif";
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 1;
+    const label = formatLength(g.position, "metric");
+    if (g.orientation === "horizontal") {
       const sy = wts(cs, 0, g.position).y;
-      ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(label, R + 4, sy - 2);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "bottom";
+      ctx.fillText(label, R + 4, sy - 2);
     } else {
       const sx = wts(cs, g.position, 0).x;
-      ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(label, sx + 4, R + 2);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText(label, sx + 4, R + 2);
     }
     ctx.restore();
   }
@@ -1269,61 +1665,94 @@ export function drawGuides(cs: CanvasState, floor: Floor, selectedGuideId: strin
 
 // ── Persisted measurements ───────────────────────────────────────────
 
-export function drawPersistedMeasurements(cs: CanvasState, floor: Floor, selectedMeasurementId: string | null, dimSettings: ProjectSettings): void {
+export function drawPersistedMeasurements(
+  cs: CanvasState,
+  floor: Floor,
+  selectedMeasurementId: string | null,
+  dimSettings: ProjectSettings,
+): void {
   if (!floor.measurements) return;
   const { ctx } = cs;
   for (const m of floor.measurements) {
     const s = wts(cs, m.x1, m.y1);
     const e = wts(cs, m.x2, m.y2);
     const selected = m.id === selectedMeasurementId;
-    ctx.strokeStyle = selected ? '#3b82f6' : '#ef4444';
+    ctx.strokeStyle = selected ? "#3b82f6" : "#ef4444";
     ctx.lineWidth = selected ? 2 : 1;
     ctx.setLineDash([6, 3]);
-    ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(e.x, e.y); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(s.x, s.y);
+    ctx.lineTo(e.x, e.y);
+    ctx.stroke();
     ctx.setLineDash([]);
 
     for (const p of [s, e]) {
-      ctx.fillStyle = selected ? '#3b82f6' : '#ef4444';
-      ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = selected ? "#3b82f6" : "#ef4444";
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     const dist = Math.hypot(m.x2 - m.x1, m.y2 - m.y1);
     const mx = (s.x + e.x) / 2;
     const my = (s.y + e.y) / 2;
-    ctx.fillStyle = selected ? '#3b82f6' : '#ef4444';
-    ctx.font = 'bold 12px sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillStyle = selected ? "#3b82f6" : "#ef4444";
+    ctx.font = "bold 12px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
     ctx.fillText(formatLength(dist, dimSettings.units), mx, my - 6);
   }
 }
 
 // ── Text annotations ─────────────────────────────────────────────────
 
-export function drawTextAnnotations(cs: CanvasState, floor: Floor, selectedTextAnnotationId: string | null, currentSelectedId: string | null): void {
+export function drawTextAnnotations(
+  cs: CanvasState,
+  floor: Floor,
+  selectedTextAnnotationId: string | null,
+  currentSelectedId: string | null,
+  palette?: CanvasPalette,
+): void {
   if (!floor.textAnnotations) return;
   const { ctx, zoom } = cs;
   for (const ta of floor.textAnnotations) {
-    const selected = ta.id === selectedTextAnnotationId || ta.id === currentSelectedId;
+    const selected =
+      ta.id === selectedTextAnnotationId || ta.id === currentSelectedId;
     const s = wts(cs, ta.x, ta.y);
     const fontSize = Math.max(8, ta.fontSize * zoom);
     ctx.save();
     ctx.translate(s.x, s.y);
-    if (ta.rotation) ctx.rotate(ta.rotation * Math.PI / 180);
+    if (ta.rotation) ctx.rotate((ta.rotation * Math.PI) / 180);
     ctx.font = `${fontSize}px sans-serif`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = ta.color || '#1e293b';
-    const lines = ta.text.split('\n');
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = ta.color || palette?.text || "#1e293b";
+    const lines = ta.text.split("\n");
     const lineHeight = fontSize * 1.2;
     const totalHeight = lines.length * lineHeight;
     for (let i = 0; i < lines.length; i++) {
-      ctx.fillText(lines[i], 0, -totalHeight / 2 + lineHeight / 2 + i * lineHeight);
+      ctx.fillText(
+        lines[i],
+        0,
+        -totalHeight / 2 + lineHeight / 2 + i * lineHeight,
+      );
     }
     if (selected) {
       let maxW = 0;
-      for (const line of lines) { const w = ctx.measureText(line).width; if (w > maxW) maxW = w; }
+      for (const line of lines) {
+        const w = ctx.measureText(line).width;
+        if (w > maxW) maxW = w;
+      }
       const pad = 4;
-      ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
-      ctx.strokeRect(-maxW / 2 - pad, -totalHeight / 2 - pad, maxW + pad * 2, totalHeight + pad * 2);
+      ctx.strokeStyle = "#3b82f6";
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 3]);
+      ctx.strokeRect(
+        -maxW / 2 - pad,
+        -totalHeight / 2 - pad,
+        maxW + pad * 2,
+        totalHeight + pad * 2,
+      );
       ctx.setLineDash([]);
     }
     ctx.restore();
@@ -1332,31 +1761,44 @@ export function drawTextAnnotations(cs: CanvasState, floor: Floor, selectedTextA
 
 // ── Dimension annotations ────────────────────────────────────────────
 
-export function drawAnnotation(cs: CanvasState, a: Annotation, selected: boolean, dimSettings: ProjectSettings): void {
+export function drawAnnotation(
+  cs: CanvasState,
+  a: Annotation,
+  selected: boolean,
+  dimSettings: ProjectSettings,
+): void {
   const { ctx, zoom } = cs;
   const offset = a.offset || 40;
-  const dx = a.x2 - a.x1, dy = a.y2 - a.y1;
+  const dx = a.x2 - a.x1,
+    dy = a.y2 - a.y1;
   const len = Math.hypot(dx, dy);
   if (len < 1) return;
 
-  const ux = dx / len, uy = dy / len;
-  const nx = -uy, ny = ux;
+  const ux = dx / len,
+    uy = dy / len;
+  const nx = -uy,
+    ny = ux;
 
-  const d1x = a.x1 + nx * offset, d1y = a.y1 + ny * offset;
-  const d2x = a.x2 + nx * offset, d2y = a.y2 + ny * offset;
+  const d1x = a.x1 + nx * offset,
+    d1y = a.y1 + ny * offset;
+  const d2x = a.x2 + nx * offset,
+    d2y = a.y2 + ny * offset;
 
   const s1 = wts(cs, a.x1, a.y1);
   const s2 = wts(cs, a.x2, a.y2);
   const sd1 = wts(cs, d1x, d1y);
   const sd2 = wts(cs, d2x, d2y);
 
-  const color = selected ? '#3b82f6' : '#6366f1';
+  const color = selected ? "#3b82f6" : "#6366f1";
 
-  ctx.strokeStyle = color; ctx.lineWidth = 0.75;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 0.75;
   const extBeyond = 4 * zoom;
   ctx.beginPath();
-  ctx.moveTo(s1.x, s1.y); ctx.lineTo(sd1.x + nx * extBeyond * zoom, sd1.y + ny * extBeyond * zoom);
-  ctx.moveTo(s2.x, s2.y); ctx.lineTo(sd2.x + nx * extBeyond * zoom, sd2.y + ny * extBeyond * zoom);
+  ctx.moveTo(s1.x, s1.y);
+  ctx.lineTo(sd1.x + nx * extBeyond * zoom, sd1.y + ny * extBeyond * zoom);
+  ctx.moveTo(s2.x, s2.y);
+  ctx.lineTo(sd2.x + nx * extBeyond * zoom, sd2.y + ny * extBeyond * zoom);
   ctx.stroke();
 
   const dimMx = (sd1.x + sd2.x) / 2;
@@ -1366,30 +1808,39 @@ export function drawAnnotation(cs: CanvasState, a: Annotation, selected: boolean
   const label = a.label || formatLength(dist, dimSettings.units);
   const fontSize = Math.max(10, 11 * zoom);
   ctx.font = `${fontSize}px sans-serif`;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
   const textW = ctx.measureText(label).width;
   const halfGap = textW / 2 + 4;
 
-  ctx.strokeStyle = color; ctx.lineWidth = selected ? 1.5 : 1;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = selected ? 1.5 : 1;
   const sux = (sd2.x - sd1.x) / Math.hypot(sd2.x - sd1.x, sd2.y - sd1.y) || 0;
   const suy = (sd2.y - sd1.y) / Math.hypot(sd2.x - sd1.x, sd2.y - sd1.y) || 0;
   ctx.beginPath();
-  ctx.moveTo(sd1.x, sd1.y); ctx.lineTo(dimMx - sux * halfGap, dimMy - suy * halfGap);
-  ctx.moveTo(dimMx + sux * halfGap, dimMy + suy * halfGap); ctx.lineTo(sd2.x, sd2.y);
+  ctx.moveTo(sd1.x, sd1.y);
+  ctx.lineTo(dimMx - sux * halfGap, dimMy - suy * halfGap);
+  ctx.moveTo(dimMx + sux * halfGap, dimMy + suy * halfGap);
+  ctx.lineTo(sd2.x, sd2.y);
   ctx.stroke();
 
   const arrowLen = Math.max(6, 7 * zoom);
   const arrowW = Math.max(2.5, 3 * zoom);
   ctx.fillStyle = color;
-  for (const [px, py, dir] of [[sd1.x, sd1.y, 1], [sd2.x, sd2.y, -1]] as [number, number, number][]) {
+  for (const [px, py, dir] of [
+    [sd1.x, sd1.y, 1],
+    [sd2.x, sd2.y, -1],
+  ] as [number, number, number][]) {
     const adx = sux * arrowLen * dir;
     const ady = suy * arrowLen * dir;
     const apx = -suy * arrowW;
     const apy = sux * arrowW;
-    ctx.beginPath(); ctx.moveTo(px, py);
+    ctx.beginPath();
+    ctx.moveTo(px, py);
     ctx.lineTo(px + adx + apx, py + ady + apy);
     ctx.lineTo(px + adx - apx, py + ady - apy);
-    ctx.closePath(); ctx.fill();
+    ctx.closePath();
+    ctx.fill();
   }
 
   ctx.fillStyle = color;
@@ -1397,12 +1848,20 @@ export function drawAnnotation(cs: CanvasState, a: Annotation, selected: boolean
 
   if (selected) {
     for (const p of [s1, s2]) {
-      ctx.fillStyle = '#3b82f6'; ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#3b82f6";
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 }
 
-export function drawAnnotations(cs: CanvasState, floor: Floor, selectedAnnotationId: string | null, dimSettings: ProjectSettings): void {
+export function drawAnnotations(
+  cs: CanvasState,
+  floor: Floor,
+  selectedAnnotationId: string | null,
+  dimSettings: ProjectSettings,
+): void {
   if (!floor.annotations) return;
   for (const a of floor.annotations) {
     drawAnnotation(cs, a, a.id === selectedAnnotationId, dimSettings);
@@ -1412,42 +1871,61 @@ export function drawAnnotations(cs: CanvasState, floor: Floor, selectedAnnotatio
 // ── Rooms ────────────────────────────────────────────────────────────
 
 const ROOM_FILLS_BY_TYPE: Record<string, string> = {
-  'Living Room': 'rgba(96, 165, 250, 0.08)',
-  'Bedroom': 'rgba(167, 139, 250, 0.08)',
-  'Kitchen': 'rgba(251, 191, 36, 0.08)',
-  'Bathroom': 'rgba(45, 212, 191, 0.08)',
-  'Dining Room': 'rgba(251, 146, 60, 0.08)',
-  'Office': 'rgba(52, 211, 153, 0.08)',
-  'Hallway': 'rgba(156, 163, 175, 0.06)',
-  'Closet': 'rgba(244, 114, 182, 0.06)',
-  'Laundry': 'rgba(129, 140, 248, 0.08)',
-  'Garage': 'rgba(163, 163, 163, 0.08)',
+  "Living Room": "rgba(96, 165, 250, 0.08)",
+  Bedroom: "rgba(167, 139, 250, 0.08)",
+  Kitchen: "rgba(251, 191, 36, 0.08)",
+  Bathroom: "rgba(45, 212, 191, 0.08)",
+  "Dining Room": "rgba(251, 146, 60, 0.08)",
+  Office: "rgba(52, 211, 153, 0.08)",
+  Hallway: "rgba(156, 163, 175, 0.06)",
+  Closet: "rgba(244, 114, 182, 0.06)",
+  Laundry: "rgba(129, 140, 248, 0.08)",
+  Garage: "rgba(163, 163, 163, 0.08)",
 };
 const ROOM_FILLS_DEFAULT = [
-  'rgba(167, 139, 250, 0.07)', 'rgba(96, 165, 250, 0.07)', 'rgba(52, 211, 153, 0.07)',
-  'rgba(251, 191, 36, 0.07)', 'rgba(248, 113, 113, 0.07)', 'rgba(244, 114, 182, 0.07)',
-  'rgba(45, 212, 191, 0.07)', 'rgba(251, 146, 60, 0.07)',
+  "rgba(167, 139, 250, 0.07)",
+  "rgba(96, 165, 250, 0.07)",
+  "rgba(52, 211, 153, 0.07)",
+  "rgba(251, 191, 36, 0.07)",
+  "rgba(248, 113, 113, 0.07)",
+  "rgba(244, 114, 182, 0.07)",
+  "rgba(45, 212, 191, 0.07)",
+  "rgba(251, 146, 60, 0.07)",
 ];
 
 export function getRoomFill(room: Room, index: number): string {
   if (room.color) {
-    const hex = room.color.replace('#', '');
+    const hex = room.color.replace("#", "");
     const r = parseInt(hex.substring(0, 2), 16);
     const g = parseInt(hex.substring(2, 4), 16);
     const b = parseInt(hex.substring(4, 6), 16);
     return `rgba(${r}, ${g}, ${b}, 0.12)`;
   }
-  return ROOM_FILLS_BY_TYPE[room.name] ?? ROOM_FILLS_DEFAULT[index % ROOM_FILLS_DEFAULT.length];
+  return (
+    ROOM_FILLS_BY_TYPE[room.name] ??
+    ROOM_FILLS_DEFAULT[index % ROOM_FILLS_DEFAULT.length]
+  );
 }
 
-type FloorPatternType = 'wood' | 'tile' | 'stone' | 'none';
+type FloorPatternType = "wood" | "tile" | "stone" | "none";
 const ROOM_FLOOR_PATTERN: Record<string, FloorPatternType> = {
-  'Living Room': 'wood', 'Bedroom': 'wood', 'Office': 'wood', 'Dining Room': 'wood', 'Hallway': 'wood',
-  'Kitchen': 'tile', 'Bathroom': 'tile', 'Laundry': 'tile',
-  'Garage': 'stone', 'Closet': 'none',
+  "Living Room": "wood",
+  Bedroom: "wood",
+  Office: "wood",
+  "Dining Room": "wood",
+  Hallway: "wood",
+  Kitchen: "tile",
+  Bathroom: "tile",
+  Laundry: "tile",
+  Garage: "stone",
+  Closet: "none",
 };
 
-export function drawRoomFloorPattern(cs: CanvasState, room: Room, screenPoly: { x: number; y: number }[]): void {
+export function drawRoomFloorPattern(
+  cs: CanvasState,
+  room: Room,
+  screenPoly: { x: number; y: number }[],
+): void {
   const { ctx, zoom } = cs;
   if (room.floorTexture) {
     const texCanvas = getFloorTextureCanvas(room.floorTexture);
@@ -1455,64 +1933,115 @@ export function drawRoomFloorPattern(cs: CanvasState, room: Room, screenPoly: { 
       ctx.save();
       ctx.beginPath();
       ctx.moveTo(screenPoly[0].x, screenPoly[0].y);
-      for (let i = 1; i < screenPoly.length; i++) ctx.lineTo(screenPoly[i].x, screenPoly[i].y);
-      ctx.closePath(); ctx.clip();
+      for (let i = 1; i < screenPoly.length; i++)
+        ctx.lineTo(screenPoly[i].x, screenPoly[i].y);
+      ctx.closePath();
+      ctx.clip();
       ctx.globalAlpha = 0.5;
       const scale = zoom * 0.15;
       ctx.scale(scale, scale);
-      const pat = ctx.createPattern(texCanvas, 'repeat');
+      const pat = ctx.createPattern(texCanvas, "repeat");
       if (pat) {
         ctx.fillStyle = pat;
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        for (const p of screenPoly) { if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x; if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y; }
-        ctx.fillRect(minX / scale - 10, minY / scale - 10, (maxX - minX) / scale + 20, (maxY - minY) / scale + 20);
+        let minX = Infinity,
+          maxX = -Infinity,
+          minY = Infinity,
+          maxY = -Infinity;
+        for (const p of screenPoly) {
+          if (p.x < minX) minX = p.x;
+          if (p.x > maxX) maxX = p.x;
+          if (p.y < minY) minY = p.y;
+          if (p.y > maxY) maxY = p.y;
+        }
+        ctx.fillRect(
+          minX / scale - 10,
+          minY / scale - 10,
+          (maxX - minX) / scale + 20,
+          (maxY - minY) / scale + 20,
+        );
       }
       ctx.restore();
       return;
     }
   }
 
-  const pattern = ROOM_FLOOR_PATTERN[room.name] ?? 'wood';
-  if (pattern === 'none' || zoom < 0.3) return;
+  const pattern = ROOM_FLOOR_PATTERN[room.name] ?? "wood";
+  if (pattern === "none" || zoom < 0.3) return;
 
   ctx.save();
   ctx.beginPath();
   ctx.moveTo(screenPoly[0].x, screenPoly[0].y);
-  for (let i = 1; i < screenPoly.length; i++) ctx.lineTo(screenPoly[i].x, screenPoly[i].y);
-  ctx.closePath(); ctx.clip();
+  for (let i = 1; i < screenPoly.length; i++)
+    ctx.lineTo(screenPoly[i].x, screenPoly[i].y);
+  ctx.closePath();
+  ctx.clip();
 
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-  for (const p of screenPoly) { if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x; if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y; }
+  let minX = Infinity,
+    maxX = -Infinity,
+    minY = Infinity,
+    maxY = -Infinity;
+  for (const p of screenPoly) {
+    if (p.x < minX) minX = p.x;
+    if (p.x > maxX) maxX = p.x;
+    if (p.y < minY) minY = p.y;
+    if (p.y > maxY) maxY = p.y;
+  }
 
   const alpha = Math.min(0.12, 0.04 + zoom * 0.02);
   ctx.strokeStyle = `rgba(120, 120, 120, ${alpha})`;
   ctx.lineWidth = 0.5;
 
-  if (pattern === 'wood') {
+  if (pattern === "wood") {
     const spacing = 15 * zoom;
     if (spacing > 3) {
-      for (let y = minY; y <= maxY; y += spacing) { ctx.beginPath(); ctx.moveTo(minX, y); ctx.lineTo(maxX, y); ctx.stroke(); }
+      for (let y = minY; y <= maxY; y += spacing) {
+        ctx.beginPath();
+        ctx.moveTo(minX, y);
+        ctx.lineTo(maxX, y);
+        ctx.stroke();
+      }
       const jointSpacing = 60 * zoom;
       if (jointSpacing > 8) {
         let row = 0;
         for (let y = minY; y <= maxY; y += spacing) {
           const offset = (row % 2) * jointSpacing * 0.5;
-          for (let x = minX + offset; x <= maxX; x += jointSpacing) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + spacing); ctx.stroke(); }
+          for (let x = minX + offset; x <= maxX; x += jointSpacing) {
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x, y + spacing);
+            ctx.stroke();
+          }
           row++;
         }
       }
     }
-  } else if (pattern === 'tile') {
+  } else if (pattern === "tile") {
     const tileSize = 30 * zoom;
     if (tileSize > 5) {
-      for (let x = minX; x <= maxX; x += tileSize) { ctx.beginPath(); ctx.moveTo(x, minY); ctx.lineTo(x, maxY); ctx.stroke(); }
-      for (let y = minY; y <= maxY; y += tileSize) { ctx.beginPath(); ctx.moveTo(minX, y); ctx.lineTo(maxX, y); ctx.stroke(); }
+      for (let x = minX; x <= maxX; x += tileSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, minY);
+        ctx.lineTo(x, maxY);
+        ctx.stroke();
+      }
+      for (let y = minY; y <= maxY; y += tileSize) {
+        ctx.beginPath();
+        ctx.moveTo(minX, y);
+        ctx.lineTo(maxX, y);
+        ctx.stroke();
+      }
     }
-  } else if (pattern === 'stone') {
+  } else if (pattern === "stone") {
     const spacing = 25 * zoom;
     if (spacing > 5) {
-      const w = maxX - minX, h = maxY - minY;
-      for (let d = -h; d <= w; d += spacing) { ctx.beginPath(); ctx.moveTo(minX + d, minY); ctx.lineTo(minX + d + h, maxY); ctx.stroke(); }
+      const w = maxX - minX,
+        h = maxY - minY;
+      for (let d = -h; d <= w; d += spacing) {
+        ctx.beginPath();
+        ctx.moveTo(minX + d, minY);
+        ctx.lineTo(minX + d + h, maxY);
+        ctx.stroke();
+      }
     }
   }
 
@@ -1527,45 +2056,74 @@ export function drawRooms(
   showRoomLabels: boolean,
   showDimensions: boolean,
   dimSettings: ProjectSettings,
+  palette?: CanvasPalette,
 ): void {
   const { ctx, zoom } = cs;
   for (let ri = 0; ri < detectedRooms.length; ri++) {
     const room = detectedRooms[ri];
     const poly = getRoomPolygon(room, floor.walls);
     if (poly.length < 3) continue;
-    const screenPoly = poly.map(p => wts(cs, p.x, p.y));
+    const screenPoly = poly.map((p) => wts(cs, p.x, p.y));
     ctx.fillStyle = getRoomFill(room, ri);
     ctx.beginPath();
     ctx.moveTo(screenPoly[0].x, screenPoly[0].y);
-    for (let i = 1; i < screenPoly.length; i++) ctx.lineTo(screenPoly[i].x, screenPoly[i].y);
-    ctx.closePath(); ctx.fill();
+    for (let i = 1; i < screenPoly.length; i++)
+      ctx.lineTo(screenPoly[i].x, screenPoly[i].y);
+    ctx.closePath();
+    ctx.fill();
 
     drawRoomFloorPattern(cs, room, screenPoly);
 
     const isSelected = currentSelectedRoomId === room.id;
     if (isSelected) {
-      ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2; ctx.setLineDash([5, 3]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = "#3b82f6";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
     }
 
     const centroid = roomCentroid(poly);
     const sc = wts(cs, centroid.x, centroid.y);
     const fontSize = Math.max(11, 13 * zoom);
     if (showRoomLabels) {
-      ctx.fillStyle = '#9ca3af';
+      ctx.fillStyle = palette?.mutedText ?? "#9ca3af";
       ctx.font = `${fontSize}px sans-serif`;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(`${room.name} (${formatArea(room.area, dimSettings.units)})`, sc.x, sc.y);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(
+        `${room.name} (${formatArea(room.area, dimSettings.units)})`,
+        sc.x,
+        sc.y,
+      );
     }
 
-    if (showDimensions && dimSettings.showInternalDimensions && poly.length >= 3) {
-      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-      for (const pt of poly) { if (pt.x < minX) minX = pt.x; if (pt.x > maxX) maxX = pt.x; if (pt.y < minY) minY = pt.y; if (pt.y > maxY) maxY = pt.y; }
+    if (
+      showDimensions &&
+      dimSettings.showInternalDimensions &&
+      poly.length >= 3
+    ) {
+      let minX = Infinity,
+        maxX = -Infinity,
+        minY = Infinity,
+        maxY = -Infinity;
+      for (const pt of poly) {
+        if (pt.x < minX) minX = pt.x;
+        if (pt.x > maxX) maxX = pt.x;
+        if (pt.y < minY) minY = pt.y;
+        if (pt.y > maxY) maxY = pt.y;
+      }
       const roomW = (maxX - minX) / 100;
       const roomD = (maxY - minY) / 100;
       if (roomW > 0.1 && roomD > 0.1) {
         const dimFontSize = Math.max(9, 10 * zoom);
-        ctx.fillStyle = '#b0b8c4'; ctx.font = `${dimFontSize}px sans-serif`;
-        ctx.fillText(`${formatLength(roomW * 100, dimSettings.units)} × ${formatLength(roomD * 100, dimSettings.units)}`, sc.x, sc.y + fontSize + 2);
+        ctx.fillStyle = palette?.mutedText ?? "#b0b8c4";
+        ctx.font = `${dimFontSize}px sans-serif`;
+        ctx.fillText(
+          `${formatLength(roomW * 100, dimSettings.units)} × ${formatLength(roomD * 100, dimSettings.units)}`,
+          sc.x,
+          sc.y + fontSize + 2,
+        );
       }
     }
   }
@@ -1573,36 +2131,55 @@ export function drawRooms(
 
 // ── Wall joints ──────────────────────────────────────────────────────
 
-export function drawWallJoints(cs: CanvasState, floor: Floor, selId: string | null): void {
+export function drawWallJoints(
+  cs: CanvasState,
+  floor: Floor,
+  selId: string | null,
+  palette?: CanvasPalette,
+): void {
   const { ctx, zoom } = cs;
-  const epMap = new Map<string, { x: number; y: number; thickness: number; selected: boolean }[]>();
+  const epMap = new Map<
+    string,
+    { x: number; y: number; thickness: number; selected: boolean }[]
+  >();
   for (const w of floor.walls) {
     const sel = w.id === selId;
     for (const ep of [w.start, w.end]) {
       const key = `${Math.round(ep.x)},${Math.round(ep.y)}`;
       if (!epMap.has(key)) epMap.set(key, []);
-      epMap.get(key)!.push({ x: ep.x, y: ep.y, thickness: w.thickness, selected: sel });
+      epMap
+        .get(key)!
+        .push({ x: ep.x, y: ep.y, thickness: w.thickness, selected: sel });
     }
   }
   for (const [, entries] of epMap) {
     if (entries.length < 2) continue;
-    const anySelected = entries.some(e => e.selected);
-    const maxThickness = Math.max(...entries.map(e => e.thickness));
+    const anySelected = entries.some((e) => e.selected);
+    const maxThickness = Math.max(...entries.map((e) => e.thickness));
     const s = wts(cs, entries[0].x, entries[0].y);
     const r = Math.max(maxThickness * zoom, 4) / 2 + 0.5;
-    ctx.fillStyle = anySelected ? '#93c5fd' : '#404040';
-    ctx.strokeStyle = anySelected ? '#3b82f6' : '#333333';
+    ctx.fillStyle = anySelected ? "#93c5fd" : (palette?.wallFill ?? "#404040");
+    ctx.strokeStyle = anySelected
+      ? "#3b82f6"
+      : (palette?.wallStroke ?? "#333333");
     ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
   }
 }
 
 // ── Snap points ──────────────────────────────────────────────────────
 
-export function drawSnapPoints(cs: CanvasState, floor: Floor, showGrid: boolean): void {
+export function drawSnapPoints(
+  cs: CanvasState,
+  floor: Floor,
+  showGrid: boolean,
+): void {
   if (!showGrid) return;
   const { ctx } = cs;
-  ctx.fillStyle = '#3b82f640';
+  ctx.fillStyle = "#3b82f640";
   const seen = new Set<string>();
   for (const w of floor.walls) {
     for (const ep of [w.start, w.end]) {
@@ -1610,7 +2187,9 @@ export function drawSnapPoints(cs: CanvasState, floor: Floor, showGrid: boolean)
       if (seen.has(key)) continue;
       seen.add(key);
       const s = wts(cs, ep.x, ep.y);
-      ctx.beginPath(); ctx.arc(s.x, s.y, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, 2, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 }
@@ -1621,9 +2200,14 @@ export function drawMinimap(
   cs: CanvasState,
   minimapCanvas: HTMLCanvasElement,
   floor: Floor,
-  getWorldBBox: () => { minX: number; minY: number; maxX: number; maxY: number } | null,
+  getWorldBBox: () => {
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+  } | null,
 ): void {
-  const mctx = minimapCanvas.getContext('2d');
+  const mctx = minimapCanvas.getContext("2d");
   if (!mctx) return;
   const mw = minimapCanvas.width;
   const mh = minimapCanvas.height;
@@ -1632,7 +2216,8 @@ export function drawMinimap(
   const bbox = getWorldBBox();
   if (!bbox) return;
 
-  mctx.fillStyle = '#f0f1f3'; mctx.fillRect(0, 0, mw, mh);
+  mctx.fillStyle = "#f0f1f3";
+  mctx.fillRect(0, 0, mw, mh);
 
   const bw = bbox.maxX - bbox.minX;
   const bh = bbox.maxY - bbox.minY;
@@ -1642,10 +2227,13 @@ export function drawMinimap(
   const oy = (mh - bh * scale) / 2;
 
   function toMini(wx: number, wy: number) {
-    return { x: ox + (wx - bbox!.minX) * scale, y: oy + (wy - bbox!.minY) * scale };
+    return {
+      x: ox + (wx - bbox!.minX) * scale,
+      y: oy + (wy - bbox!.minY) * scale,
+    };
   }
 
-  mctx.strokeStyle = '#555';
+  mctx.strokeStyle = "#555";
   mctx.lineWidth = Math.max(1, 2 * scale);
   for (const w of floor.walls) {
     const s = toMini(w.start.x, w.start.y);
@@ -1653,9 +2241,11 @@ export function drawMinimap(
     mctx.beginPath();
     if (w.curvePoint) {
       const cp = toMini(w.curvePoint.x, w.curvePoint.y);
-      mctx.moveTo(s.x, s.y); mctx.quadraticCurveTo(cp.x, cp.y, e.x, e.y);
+      mctx.moveTo(s.x, s.y);
+      mctx.quadraticCurveTo(cp.x, cp.y, e.x, e.y);
     } else {
-      mctx.moveTo(s.x, s.y); mctx.lineTo(e.x, e.y);
+      mctx.moveTo(s.x, s.y);
+      mctx.lineTo(e.x, e.y);
     }
     mctx.stroke();
   }
@@ -1666,21 +2256,30 @@ export function drawMinimap(
     const p = toMini(fi.position.x, fi.position.y);
     const fw = Math.max(2, (fi.width ?? cat.width) * scale);
     const fd = Math.max(2, (fi.depth ?? cat.depth) * scale);
-    mctx.fillStyle = (fi.color ?? cat.color) + 'aa';
+    mctx.fillStyle = (fi.color ?? cat.color) + "aa";
     mctx.fillRect(p.x - fw / 2, p.y - fd / 2, fw, fd);
   }
 
   const { width, height, zoom, camX, camY } = cs;
-  const vpTL = { x: (0 - width / 2) / zoom + camX, y: (0 - height / 2) / zoom + camY };
-  const vpBR = { x: (width - width / 2) / zoom + camX, y: (height - height / 2) / zoom + camY };
+  const vpTL = {
+    x: (0 - width / 2) / zoom + camX,
+    y: (0 - height / 2) / zoom + camY,
+  };
+  const vpBR = {
+    x: (width - width / 2) / zoom + camX,
+    y: (height - height / 2) / zoom + camY,
+  };
   const vtl = toMini(vpTL.x, vpTL.y);
   const vbr = toMini(vpBR.x, vpBR.y);
-  mctx.strokeStyle = '#3b82f6'; mctx.lineWidth = 1.5;
-  mctx.fillStyle = 'rgba(59, 130, 246, 0.1)';
+  mctx.strokeStyle = "#3b82f6";
+  mctx.lineWidth = 1.5;
+  mctx.fillStyle = "rgba(59, 130, 246, 0.1)";
   const vw = vbr.x - vtl.x;
   const vh = vbr.y - vtl.y;
   mctx.fillRect(vtl.x, vtl.y, vw, vh);
   mctx.strokeRect(vtl.x, vtl.y, vw, vh);
 
-  mctx.strokeStyle = '#cbd5e1'; mctx.lineWidth = 1; mctx.strokeRect(0, 0, mw, mh);
+  mctx.strokeStyle = "#cbd5e1";
+  mctx.lineWidth = 1;
+  mctx.strokeRect(0, 0, mw, mh);
 }
