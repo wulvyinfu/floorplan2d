@@ -352,7 +352,7 @@
           </div>
           <div class="text-left">
             <div class="font-medium">选择 <span class="text-gray-400 text-xs ml-1">V</span></div>
-            <div class="text-xs text-gray-400">单击选择元素</div>
+            <div class="text-xs text-gray-400">单击选择，按住 B 拖动框选</div>
           </div>
         </button>
         <button

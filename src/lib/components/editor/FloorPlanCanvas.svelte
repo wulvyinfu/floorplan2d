@@ -62,6 +62,7 @@
   let panStartY = 0;
   let spaceDown = $state(false);
   let shiftDown = $state(false);
+  let marqueeKeyDown = $state(false);
 
   // Furniture drag state
   let draggingFurnitureId: string | null = $state(null);
@@ -200,6 +201,7 @@
   // Marquee (drag-to-select) state
   let marqueeStart: Point | null = $state(null);
   let marqueeEnd: Point | null = $state(null);
+  let marqueeAdditive = false;
   let currentSelectedIds: Set<string> = $state(new Set());
 
   // Multi-select drag state
@@ -2041,7 +2043,7 @@
 
   function onMouseDown(e: MouseEvent) {
     markDirty();
-    if (e.button === 1 || (e.button === 0 && (spaceDown || $panMode || (e.shiftKey && currentTool === 'select')))) {
+    if (e.button === 1 || (e.button === 0 && (spaceDown || ($panMode && !marqueeKeyDown) || (e.shiftKey && currentTool === 'select' && !marqueeKeyDown)))) {
       isPanning = true;
       panStartX = e.clientX;
       panStartY = e.clientY;
@@ -2052,6 +2054,17 @@
     const rect = canvas.getBoundingClientRect();
     const wp = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
     const tool = currentTool;
+    if (tool === 'select' && marqueeKeyDown) {
+      marqueeStart = { ...wp };
+      marqueeEnd = { ...wp };
+      marqueeAdditive = e.shiftKey;
+      if (!marqueeAdditive) {
+        selectedElementId.set(null);
+        selectedElementIds.set(new Set());
+      }
+      selectedRoomId.set(null);
+      return;
+    }
     if (batchGridPlacement) {
       const c = batchGridPlacement;
       const center = { x: snap(wp.x), y: snap(wp.y) };
@@ -2472,6 +2485,7 @@
           // Empty space — start marquee selection
           marqueeStart = { ...wp };
           marqueeEnd = { ...wp };
+          marqueeAdditive = e.shiftKey;
           if (!e.shiftKey) {
             selectedElementId.set(null);
             selectedElementIds.set(new Set());
@@ -2891,7 +2905,7 @@
 
       // Only treat as marquee if dragged at least a small distance
       if (marqueeW > 5 || marqueeH > 5) {
-        const ids = new Set<string>(e.shiftKey ? currentSelectedIds : []);
+        const ids = new Set<string>(marqueeAdditive ? currentSelectedIds : []);
 
         function ptInRect(p: Point) {
           return p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY;
@@ -2951,6 +2965,7 @@
       }
       marqueeStart = null;
       marqueeEnd = null;
+      marqueeAdditive = false;
     }
 
     if (draggingFurnitureId) commitFurnitureMove();
@@ -3031,6 +3046,11 @@
     shiftDown = e.shiftKey;
     const keyTarget = e.target as HTMLElement | null;
     const isEditingInput = keyTarget?.tagName === 'INPUT' || keyTarget?.tagName === 'TEXTAREA' || keyTarget?.tagName === 'SELECT' || keyTarget?.isContentEditable;
+    if (e.code === 'KeyB' && !isEditingInput && !e.ctrlKey && !e.metaKey && !e.altKey && currentTool === 'select') {
+      marqueeKeyDown = true;
+      e.preventDefault();
+      return;
+    }
     if (isEditingInput && (e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'c' || e.key === 'v' || e.key === 'x')) return;
     if (e.code === 'Space') { spaceDown = true; e.preventDefault(); return; }
 
@@ -3081,6 +3101,8 @@
       annotationStart = null;
       marqueeStart = null;
       marqueeEnd = null;
+      marqueeAdditive = false;
+      marqueeKeyDown = false;
     }
 
     // Select All (Ctrl+A / Cmd+A)
@@ -3208,6 +3230,13 @@
   function onKeyUp(e: KeyboardEvent) {
     shiftDown = e.shiftKey;
     if (e.code === 'Space') spaceDown = false;
+    if (e.code === 'KeyB') marqueeKeyDown = false;
+  }
+
+  function onWindowBlur() {
+    marqueeKeyDown = false;
+    spaceDown = false;
+    shiftDown = false;
   }
 
   function onDragOver(e: DragEvent) {
@@ -3537,7 +3566,9 @@
   }
 
   let cursorStyle = $derived(
-    spaceDown || isPanning || $panMode || (shiftDown && currentTool === 'select') ? 'grab' :
+    spaceDown || isPanning ? 'grab' :
+    marqueeKeyDown && currentTool === 'select' ? 'crosshair' :
+    $panMode || (shiftDown && currentTool === 'select') ? 'grab' :
     draggingFurnitureId ? 'move' :
     draggingRoomId ? 'move' :
     draggingMultiSelect ? 'move' :
@@ -3561,7 +3592,7 @@
   );
 </script>
 
-<svelte:window on:keydown={onKeyDown} on:keyup={onKeyUp} />
+<svelte:window on:keydown={onKeyDown} on:keyup={onKeyUp} on:blur={onWindowBlur} />
 
 <div class="w-full h-full relative overflow-hidden" role="application">
   <canvas
