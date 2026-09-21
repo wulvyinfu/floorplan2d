@@ -10,7 +10,6 @@ import { GenerateObjectsError } from './models/types';
 import { themePreference, type ThemePreference } from './stores/theme';
 import type { BatchGridPlacementInput } from './models/types';
 import type { CustomPattern, GenerateObjectsInput, GenerateObjectsResult, ObjectAddedEvent, OpeningCatalogConfig, OptionsContextSnapshot, OptionsElement, Point, Project, SaveEvent, WalkthroughPoint, WalkthroughPointAddedEvent } from './models/types';
-import { removeElement, selectedElementId, selectedElementIds, selectedRoomId, updateOptionsElement } from './stores/project';
 import type { Tool } from './stores/project';
 import type { RoomPreset } from './utils/roomPresets';
 import type { RoomTemplate } from './utils/roomTemplates';
@@ -37,13 +36,13 @@ export interface FloorplanEditorHandle {
   save(): Promise<SaveEvent | null>;
 }
 
-export type FloorplanEditorModulePosition = 'toolbar' | 'leftPanel' | 'rightPanel' | 'canvasOverlay';
-
 export interface FloorplanEditorModules {
-  toolbar?: ReactNode;
-  leftPanel?: ReactNode;
-  rightPanel?: ReactNode;
-  canvasOverlay?: ReactNode;
+  toolbar?: () => ReactNode;
+  materialLibrary?: {
+    title: string;
+    content: ReactNode;
+  };
+  properties?: (selected: OptionsElement | null) => ReactNode;
 }
 
 export interface OptionsRenderContext extends OptionsContextSnapshot {
@@ -63,7 +62,6 @@ export interface FloorplanEditorProps {
   style?: CSSProperties;
   modules?: FloorplanEditorModules;
   /** Completely replaces the built-in right-side properties panel. */
-  optionsRender?: (context: OptionsRenderContext) => ReactNode;
   customPatterns?: CustomPattern[];
   customObjects?: CustomPattern[];
   roomPresets?: readonly RoomPreset[];
@@ -90,7 +88,6 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
     style,
     modules,
     theme,
-    optionsRender,
     customPatterns,
     customObjects,
     roomPresets = EMPTY_ROOM_PRESETS,
@@ -110,7 +107,7 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
   const callbacksRef = useRef({ onProjectChange, onObjectAdded, onWalkthroughPointAdded, onSave, onReady });
   const effectiveObjects = customObjects ?? customPatterns;
   const patternsRef = useRef(effectiveObjects);
-  const [moduleTargets, setModuleTargets] = useState<Partial<Record<FloorplanEditorModulePosition, HTMLElement>>>({});
+  const [moduleTargets, setModuleTargets] = useState<Partial<Record<'toolbarRight' | 'materialLibrary' | 'properties', HTMLElement>>>({});
   const [optionsSnapshot, setOptionsSnapshot] = useState<OptionsContextSnapshot | null>(null);
 
   projectRef.current = project;
@@ -162,8 +159,9 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
         roomPresets,
         roomTemplates,
         openingCatalog,
+        customMaterialTitle: modules?.materialLibrary?.title,
         theme,
-        hideDefaultOptions: !!optionsRender,
+        hideDefaultOptions: !!modules?.properties,
         onOptionsContextChange(context: OptionsContextSnapshot | null) {
           if (active) setOptionsSnapshot(context);
         },
@@ -183,7 +181,7 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
           handleRef.current = handle;
           callbacksRef.current.onReady?.(handle);
         },
-        onModuleTarget(position: FloorplanEditorModulePosition, element: HTMLElement | null) {
+        onModuleTarget(position: 'toolbarRight' | 'materialLibrary' | 'properties', element: HTMLElement | null) {
           if (!active) return;
           setModuleTargets((current) => {
             if (current[position] === element) return current;
@@ -203,7 +201,7 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
       handleRef.current = null;
       void unmount(instance);
     };
-  }, [autoSave, dataStore, !!optionsRender]);
+  }, [autoSave, dataStore, !!modules?.properties, !!modules?.materialLibrary]);
 
   useEffect(() => {
     if (theme) themePreference.set(theme);
@@ -229,36 +227,13 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
     handleRef.current?.setOpeningCatalog(openingCatalog);
   }, [openingCatalog]);
 
-  const positions: FloorplanEditorModulePosition[] = ['toolbar', 'leftPanel', 'rightPanel', 'canvasOverlay'];
-  const portals = positions.flatMap((position) => {
-    const target = moduleTargets[position];
-    const content = modules?.[position];
-    return target && content != null ? [createPortal(content, target, position)] : [];
-  });
-  const optionsTarget = moduleTargets.rightPanel;
-  if (optionsRender && optionsTarget && optionsSnapshot) {
-    const selection = optionsSnapshot.selection;
-    const context: OptionsRenderContext = {
-      ...optionsSnapshot,
-      updateSelected(updates) {
-        if (selection) updateOptionsElement(selection.kind, selection.value.id, updates as Record<string, unknown>);
-      },
-      removeSelected() {
-        if (selection) removeElement(selection.value.id);
-      },
-      select(id) {
-        selectedRoomId.set(null);
-        selectedElementId.set(id);
-        selectedElementIds.set(id ? new Set([id]) : new Set());
-      },
-      clearSelection() {
-        selectedRoomId.set(null);
-        selectedElementId.set(null);
-        selectedElementIds.set(new Set());
-      }
-    };
-    portals.push(createPortal(optionsRender(context), optionsTarget, 'options-render'));
-  }
+  const portals = [];
+  const toolbarTarget = moduleTargets.toolbarRight;
+  if (toolbarTarget && modules?.toolbar) portals.push(createPortal(modules.toolbar(), toolbarTarget, 'toolbar'));
+  const materialTarget = moduleTargets.materialLibrary;
+  if (materialTarget && modules?.materialLibrary) portals.push(createPortal(modules.materialLibrary.content, materialTarget, 'material-library'));
+  const propertiesTarget = moduleTargets.properties;
+  if (propertiesTarget && modules?.properties) portals.push(createPortal(modules.properties(optionsSnapshot?.selection?.value ?? null), propertiesTarget, 'properties'));
 
   return createElement(
     Fragment,

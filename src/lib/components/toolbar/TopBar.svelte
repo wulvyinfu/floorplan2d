@@ -13,7 +13,13 @@
   import { initVersionHistory, snapshotOnAction } from '$lib/stores/versionHistory';
   import VersionHistoryPanel from './VersionHistoryPanel.svelte';
 
-  let { autoSave = true }: { autoSave?: boolean } = $props();
+  let { autoSave = true, onModuleTarget }: { autoSave?: boolean; onModuleTarget?: (position: 'toolbarRight', element: HTMLElement | null) => void } = $props();
+  let toolbarRightTarget: HTMLDivElement;
+
+  $effect(() => {
+    if (toolbarRightTarget) onModuleTarget?.('toolbarRight', toolbarRightTarget);
+    return () => onModuleTarget?.('toolbarRight', null);
+  });
 
   let settingsOpen = $state(false);
   let areaOpen = $state(false);
@@ -250,6 +256,8 @@
   </div>
 
   <div class="flex-1"></div>
+
+  <div bind:this={toolbarRightTarget} data-floorplan-module="toolbar-right" class="flex items-center gap-1 empty:hidden"></div>
 
   <button onclick={undo} class="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors" title="撤销（Ctrl+Z）" aria-label="撤销">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>

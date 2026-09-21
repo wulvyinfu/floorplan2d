@@ -15,17 +15,25 @@
     roomPresets?: readonly RoomPreset[];
     roomTemplates?: readonly RoomTemplate[];
     openingCatalog?: OpeningCatalogConfig;
+    customMaterialTitle?: string;
+    onModuleTarget?: (position: 'materialLibrary', element: HTMLElement | null) => void;
   }
 
-  let { roomPresets = [], roomTemplates = [], openingCatalog = {} }: Props = $props();
+  let { roomPresets = [], roomTemplates = [], openingCatalog = {}, customMaterialTitle, onModuleTarget }: Props = $props();
+  let customMaterialTarget = $state<HTMLDivElement>();
 
   // AreaSummaryPanel moved to top bar dialog
-  let activeTab = $state<'draw' | 'rooms' | 'objects'>('draw');
+  let activeTab = $state<'draw' | 'rooms' | 'objects' | 'custom'>('draw');
   let selectedCategory = $state<string>('All');
   let customPatterns = $state(getCustomPatterns());
   let allFurniture = $derived(customPatterns.map((item) => ({ ...item, category: item.category || '自定义物件', color: item.color || '#64748b', height: item.height ?? 0, icon: '图', pattern: true as const })));
   let allCategories = $derived([...new Set(customPatterns.map((item) => item.category || '自定义物件'))]);
   currentProject.subscribe((project) => { customPatterns = project?.customPatterns ?? []; });
+
+  $effect(() => {
+    if (customMaterialTarget) onModuleTarget?.('materialLibrary', customMaterialTarget);
+    return () => onModuleTarget?.('materialLibrary', null);
+  });
 
   // RoomPlan import dialog state
   let showImportDialog = $state(false);
@@ -323,6 +331,12 @@
       class="flex-1 py-2.5 text-xs font-semibold uppercase tracking-wide {activeTab === 'objects' ? 'text-slate-800 border-b-2 border-blue-500 bg-blue-50' : 'text-gray-500 hover:text-gray-700'}"
       onclick={() => activeTab = 'objects'}
     >物件</button>
+    {#if customMaterialTitle}
+      <button
+        class="flex-1 py-2.5 text-xs font-semibold uppercase tracking-wide {activeTab === 'custom' ? 'text-slate-800 border-b-2 border-blue-500 bg-blue-50' : 'text-gray-500 hover:text-gray-700'}"
+        onclick={() => activeTab = 'custom'}
+      >{customMaterialTitle}</button>
+    {/if}
   </div>
 
   <div class="flex-1 overflow-y-auto p-3">
@@ -690,6 +704,11 @@
         {#if allFurniture.length === 0}
           <p class="py-10 text-center text-xs text-gray-400">暂无物件，请通过组件参数添加自定义物件</p>
         {/if}
+      </div>
+    {:else}
+      <div class="space-y-2">
+        <h3 class="text-xs font-semibold text-gray-400 uppercase mb-2">{customMaterialTitle}</h3>
+        <div bind:this={customMaterialTarget} data-floorplan-module="material-library" class="empty:hidden"></div>
       </div>
     {/if}
   </div>

@@ -47,7 +47,7 @@
     save(): Promise<SaveEvent | null>;
   }
 
-  type ModulePosition = 'toolbar' | 'leftPanel' | 'rightPanel' | 'canvasOverlay';
+  type ModulePosition = 'toolbarRight' | 'materialLibrary' | 'properties';
 
   interface Props {
     project?: Project;
@@ -62,6 +62,7 @@
     onSave?: (event: SaveEvent) => void;
     onReady?: (handle: FloorplanEditorHandle) => void;
     onModuleTarget?: (position: ModulePosition, element: HTMLElement | null) => void;
+    customMaterialTitle?: string;
     hideDefaultOptions?: boolean;
     onOptionsContextChange?: (context: OptionsContextSnapshot | null) => void;
     customPatterns?: CustomPattern[];
@@ -82,6 +83,7 @@
     onSave,
     onReady,
     onModuleTarget,
+    customMaterialTitle,
     theme,
     hideDefaultOptions = false,
     onOptionsContextChange,
@@ -133,10 +135,7 @@
   let showUndoHistory = $state(false);
   let commandPaletteOpen = $state(false);
   let printOpen = $state(false);
-  let toolbarTarget = $state<HTMLDivElement>();
-  let leftPanelTarget = $state<HTMLDivElement>();
-  let rightPanelTarget = $state<HTMLDivElement>();
-  let canvasOverlayTarget = $state<HTMLDivElement>();
+  let propertiesTarget = $state<HTMLDivElement>();
   let objectAddedSource: ObjectAddedEvent['source'] = 'editor';
   let knownObjectIds = new Set<string>();
   let knownWalkthroughPointIds = new Set<string>();
@@ -144,15 +143,9 @@
 
   $effect(() => {
     if (!ready) return;
-    if (toolbarTarget) onModuleTarget?.('toolbar', toolbarTarget);
-    if (leftPanelTarget) onModuleTarget?.('leftPanel', leftPanelTarget);
-    if (rightPanelTarget) onModuleTarget?.('rightPanel', rightPanelTarget);
-    if (canvasOverlayTarget) onModuleTarget?.('canvasOverlay', canvasOverlayTarget);
+    if (propertiesTarget) onModuleTarget?.('properties', propertiesTarget);
     return () => {
-      onModuleTarget?.('toolbar', null);
-      onModuleTarget?.('leftPanel', null);
-      onModuleTarget?.('rightPanel', null);
-      onModuleTarget?.('canvasOverlay', null);
+      onModuleTarget?.('properties', null);
     };
   });
 
@@ -358,21 +351,18 @@
   aria-label="户型图编辑器"
 >
   {#if ready}
-    <TopBar {autoSave} />
-    <div bind:this={toolbarTarget} data-floorplan-module="toolbar" class="shrink-0 empty:hidden"></div>
+    <TopBar {autoSave} {onModuleTarget} />
     <div class="flex flex-1 min-h-0 overflow-hidden">
-      <BuildPanel {roomPresets} {roomTemplates} {openingCatalog} />
-      <div bind:this={leftPanelTarget} data-floorplan-module="left-panel" class="h-full shrink-0 overflow-auto empty:hidden"></div>
+      <BuildPanel {roomPresets} {roomTemplates} {openingCatalog} {customMaterialTitle} {onModuleTarget} />
       <div class="flex-1 min-w-0 relative">
         <FloorPlanCanvas {roomPresets} {roomTemplates} />
         <AlignmentToolbar />
-        <div bind:this={canvasOverlayTarget} data-floorplan-module="canvas-overlay" class="absolute inset-0 z-30 pointer-events-none empty:hidden"></div>
       </div>
       {#if showLayers}
         <LayersPanel />
       {/if}
-      <div bind:this={rightPanelTarget} data-floorplan-module="right-panel" class="h-full shrink-0 overflow-auto empty:hidden"></div>
       {#if !hideDefaultOptions}<PropertiesPanel />{/if}
+      <div bind:this={propertiesTarget} data-floorplan-module="properties" class="fixed right-0 top-12 bottom-9 z-50 w-64 overflow-y-auto empty:hidden"></div>
     </div>
 
     <button class="absolute bottom-4 left-14 w-8 h-8 rounded-full shadow-lg hover:bg-slate-600 transition-colors z-50 text-sm" class:bg-blue-600={showLayers} class:text-white={showLayers} class:bg-slate-700={!showLayers} class:text-gray-300={!showLayers} onclick={() => showLayers = !showLayers} title="图层面板（L）" aria-label="切换图层面板">层</button>

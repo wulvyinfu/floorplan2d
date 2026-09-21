@@ -374,30 +374,22 @@ const event = await editorRef.current?.save();
 
 `theme` 支持 `light`、`dark`、`system`（跟随系统）。不传时沿用已保存的主题偏好。顶部太阳/月亮按钮可快捷切换，也可以在设置中选择跟随系统。侧栏、表单和画布背景/网格随主题变化；物件颜色和导出工程图保持不变。主题偏好是全局共享的，并同步页面根节点的 `dark` 类。
 
-`optionsRender` 会完全覆盖内置右侧属性栏，适用于墙、门、窗、壁画、家具、房间、楼梯、柱、文本标注和漫游标点。返回 `null` 时右栏保持为空，不会回退到默认属性栏。
+`modules.properties` 会完全覆盖内置右侧属性栏，适用于墙、门、窗、壁画、家具、房间、楼梯、柱、文本标注和漫游标点。回调参数是当前选中的属性对象，未选中时为 `null`。
 
 ```tsx
 <FloorplanEditor
-  optionsRender={({ selection, updateSelected, removeSelected }) => {
-    if (!selection) return <div className="p-4">请选择物件</div>;
-    return (
+  modules={{
+    properties: (selected) => (
       <div className="w-72 p-4">
-        <h3>{selection.kind}</h3>
-        {'width' in selection.value && (
-          <input
-            type="number"
-            value={selection.value.width}
-            onChange={(event) => updateSelected({ width: Number(event.target.value) })}
-          />
-        )}
-        <button onClick={removeSelected}>删除</button>
+        <h3>当前属性</h3>
+        <pre>{JSON.stringify(selected, null, 2)}</pre>
       </div>
-    );
+    )
   }}
 />
 ```
 
-上下文包含 `project`、`floor`、`selection`、`selectedIds`，以及 `updateSelected()`、`removeSelected()`、`select()`、`clearSelection()` 操作方法。`modules.rightPanel` 仍是附加内容；如同时传入，会与自定义属性栏显示在同一右侧容器中。
+自定义属性组件需要通过编辑器已有的数据更新 API 或业务状态管理完成属性修改。
 
 ### 物件矩阵预生成与鼠标放置
 
@@ -525,32 +517,29 @@ interface WallArt {
 
 ## 10. 自定义 React 模块
 
-可以向编辑器的四个区域注入 React 节点：
+`modules` 提供右上工具栏、自定义素材库和自定义属性面板三个扩展点：
 
 ```tsx
 <FloorplanEditor
   modules={{
-    toolbar: <div>顶部扩展操作</div>,
-    leftPanel: <aside>左侧业务目录</aside>,
-    rightPanel: <aside>右侧业务信息</aside>,
-    canvasOverlay: (
-      <button
-        type="button"
-        style={{
-          position: 'absolute',
-          top: 12,
-          right: 12,
-          pointerEvents: 'auto'
-        }}
-      >
-        画布操作
-      </button>
+    toolbar: () => <button type="button" onClick={() => alert('业务操作')}>业务操作</button>,
+    materialLibrary: {
+      title: '我的素材',
+      content: <div className="p-2">自定义素材布局</div>
+    },
+    properties: (selected) => (
+      <div className="p-3">
+        <h3>自定义属性</h3>
+        <pre>{JSON.stringify(selected, null, 2)}</pre>
+      </div>
     )
   }}
 />
 ```
 
-`canvasOverlay` 容器默认不拦截画布事件，可交互元素需要设置 `pointerEvents: 'auto'`。
+- `toolbar` 是回调函数，返回的 React 组件显示在顶部右侧工具栏。
+- `materialLibrary` 必须提供 `title` 和 `content`，会作为左侧素材库 Tab，与“建造”“房间”“物件”并列切换。
+- `properties` 是回调函数，参数是当前选中的属性对象；未选中时为 `null`。返回的 React 组件会替换默认属性面板。
 
 ## 11. Ref API
 
