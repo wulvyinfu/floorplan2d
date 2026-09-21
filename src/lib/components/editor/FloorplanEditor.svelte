@@ -25,10 +25,13 @@
   import CommandPalette from '$lib/components/editor/CommandPalette.svelte';
   import PrintLayout from '$lib/components/editor/PrintLayout.svelte';
   import OnboardingTooltip from '$lib/components/OnboardingTooltip.svelte';
+  import { parseProjectFileData } from '$lib/utils/projectFile';
+  import type { ProjectFileData } from '$lib/utils/projectFile';
 
   export interface FloorplanEditorHandle {
     getProject(): Project | null;
     loadProject(project: Project): void;
+    updateFileData(data: ProjectFileData): void;
     focus(): void;
     registerPattern(pattern: CustomPattern): void;
     removePattern(id: string): void;
@@ -166,6 +169,10 @@
     knownObjectIds = new Set(nextProject.floors.flatMap((floor) => floor.furniture.map((item) => item.id)));
     knownWalkthroughPointIds = new Set(nextProject.floors.flatMap((floor) => (floor.walkthroughPoints ?? []).map((point) => point.id)));
     currentProject.set(nextProject);
+  }
+
+  export function updateFileData(data: ProjectFileData) {
+    loadProject(parseProjectFileData(data));
   }
 
   export function focus() {
@@ -332,7 +339,7 @@
       }
     });
 
-    onReady?.({ getProject, loadProject, focus, registerPattern, removePattern, setRoomCatalogs, setOpeningCatalog, generateObjects, preGenerateObjectGrid, setTool, addWalkthroughPoint, setWalkthroughPoints, updateWalkthroughPoint, insertWalkthroughPoint, normalizeCoordinates, copySelection, pasteSelection, save });
+    onReady?.({ getProject, loadProject, updateFileData, focus, registerPattern, removePattern, setRoomCatalogs, setOpeningCatalog, generateObjects, preGenerateObjectGrid, setTool, addWalkthroughPoint, setWalkthroughPoints, updateWalkthroughPoint, insertWalkthroughPoint, normalizeCoordinates, copySelection, pasteSelection, save });
     root.addEventListener('keydown', handleKeydown);
 
     return () => {

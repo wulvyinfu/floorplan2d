@@ -10,7 +10,9 @@
   min-height: 32rem;
   width: 100%;
 }
-
+.cursor-pointer {
+  cursor: pointer;
+}
 .floorplan-editor.dark { color-scheme: dark; color: #e2e8f0; background: #111827; }
 .floorplan-editor.dark .bg-white { background-color: #1f2937 !important; }
 .floorplan-editor.dark :is(.bg-gray-50, .bg-slate-50) { background-color: #111827 !important; }

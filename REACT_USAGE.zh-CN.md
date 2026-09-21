@@ -103,6 +103,37 @@ export default function App() {
 
 编辑器发生墙体、门、物件、房间或漫游路线变化时，会通过 `onProjectChange` 返回完整项目。
 
+### 初始化项目文件数据
+
+第三方可以通过 `initialFileData` 直接传入项目 JSON 字符串或已解析对象。该属性仅用于首次初始化；如果同时传入 `project`，以 `project` 为准。
+
+```tsx
+const initialFileData = await fetch('/api/floorplans/demo').then((response) => response.text());
+
+<FloorplanEditor
+  ref={editorRef}
+  initialFileData={initialFileData}
+  autoSave={false}
+/>
+```
+
+运行期间更新文件数据：
+
+```tsx
+const nextFileData = await fetch('/api/floorplans/next').then((response) => response.json());
+editorRef.current?.updateFileData(nextFileData);
+```
+
+也可以单独解析文件数据，用于校验或转换为受控 `Project`：
+
+```tsx
+import { parseProjectFileData } from 'floorplan2d';
+
+const project = parseProjectFileData(fileData);
+```
+
+解析器会恢复 `createdAt`、`updatedAt` 为 `Date`，补齐旧文件缺少的楼层数组字段，并在 `activeFloorId` 无效时切换到第一个楼层。JSON 格式错误或缺少 `id`、`name`、`floors`、`walls` 等必要字段时会抛出 `Error`。
+
 ## 5. 自定义物件目录
 
 物件目录默认为空，只显示外部传入的物件。`src` 可省略，无图片时使用 `shape` 绘制矩形或圆形。
@@ -547,6 +578,7 @@ interface WallArt {
 interface FloorplanEditorHandle {
   getProject(): Project | null;
   loadProject(project: Project): void;
+  updateFileData(data: ProjectFileData): void;
   focus(): void;
   registerPattern(pattern: CustomPattern): void;
   removePattern(id: string): void;
@@ -794,6 +826,7 @@ export default function App() {
 | 属性 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | `project` | `Project` | 自动创建 | 当前项目数据 |
+| `initialFileData` | `string \| Project \| Record<string, unknown>` | 无 | 首次初始化使用的项目文件 JSON 或对象 |
 | `height` | `CSSProperties['height']` | `100vh` | 编辑器高度 |
 | `autoSave` | `boolean` | `true` | 是否使用 DataStore 自动保存 |
 | `dataStore` | `DataStore` | 本地存储 | 自定义持久化适配器 |

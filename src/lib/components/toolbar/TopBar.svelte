@@ -207,14 +207,14 @@
 
 <div class="h-12 bg-gradient-to-r from-slate-800 to-slate-700 flex items-center px-4 gap-3 shrink-0 shadow-sm">
   <!-- Back to Projects -->
-  <a
-    href="/"
-    class="flex items-center gap-1 text-white/70 hover:text-white text-sm transition-colors"
-    title="返回项目列表"
+  <span
+    onclick={() => history.back()}
+    class="flex items-center gap-1 text-white/70 hover:text-white text-sm transition-colors cursor-pointer"
+    title="返回上一页面"
   >
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-    <span class="hidden sm:inline">项目</span>
-  </a>
+    <span class="hidden sm:inline">返回</span>
+  </span>
 
   <div class="h-5 w-px bg-white/20"></div>
 

@@ -14,10 +14,12 @@ import type { Tool } from './stores/project';
 import type { RoomPreset } from './utils/roomPresets';
 import type { RoomTemplate } from './utils/roomTemplates';
 import type { DataStore } from './services/datastore';
+import { parseProjectFileData, type ProjectFileData } from './utils/projectFile';
 
 export interface FloorplanEditorHandle {
   getProject(): Project | null;
   loadProject(project: Project): void;
+  updateFileData(data: ProjectFileData): void;
   focus(): void;
   registerPattern(pattern: CustomPattern): void;
   removePattern(id: string): void;
@@ -55,6 +57,7 @@ export interface OptionsRenderContext extends OptionsContextSnapshot {
 export interface FloorplanEditorProps {
   theme?: ThemePreference;
   project?: Project;
+  initialFileData?: ProjectFileData;
   dataStore?: DataStore;
   autoSave?: boolean;
   height?: CSSProperties['height'];
@@ -81,6 +84,7 @@ const EMPTY_OPENING_CATALOG: OpeningCatalogConfig = {};
 export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditorProps>(function FloorplanEditor(
   {
     project,
+    initialFileData,
     dataStore,
     autoSave = true,
     height = '100vh',
@@ -117,6 +121,7 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
   useImperativeHandle(forwardedRef, () => ({
     getProject: () => handleRef.current?.getProject() ?? null,
     loadProject: (nextProject) => handleRef.current?.loadProject(nextProject),
+    updateFileData: (data) => handleRef.current?.loadProject(parseProjectFileData(data)),
     focus: () => handleRef.current?.focus(),
     registerPattern: (pattern) => handleRef.current?.registerPattern(pattern),
     removePattern: (id) => handleRef.current?.removePattern(id),
@@ -151,7 +156,7 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
     const instance = mount(SvelteFloorplanEditor, {
       target: hostRef.current,
       props: {
-        project: projectRef.current,
+        project: projectRef.current ?? (initialFileData == null ? undefined : parseProjectFileData(initialFileData)),
         dataStore,
         autoSave,
         height: '100%',
@@ -245,6 +250,8 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
 
 export { createDefaultFloor, createDefaultProject, localStore };
 export { GenerateObjectsError };
+export { parseProjectFileData };
+export type { ProjectFileData };
 export type { DataStore } from './services/datastore';
 export type { ThemePreference } from './stores/theme';
 export type * from './models/types';
