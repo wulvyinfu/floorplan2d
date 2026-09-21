@@ -14,8 +14,23 @@ function dataStore() {
   return getRuntimeDataStore() ?? localStore;
 }
 
+function toPlainValue<T>(value: T): T {
+  if (value instanceof Date) return new Date(value.getTime()) as T;
+  if (Array.isArray(value)) return value.map((item) => toPlainValue(item)) as T;
+  if (value && typeof value === 'object') {
+    const plain: Record<string, unknown> = {};
+    for (const key of Object.keys(value)) plain[key] = toPlainValue((value as Record<string, unknown>)[key]);
+    return plain as T;
+  }
+  return value;
+}
+
 function notifySaved(project: Project, source: SaveSource, savedAt: Date): SaveEvent {
-  const event = { project, source, savedAt };
+  const event = {
+    project: toPlainValue(project),
+    source,
+    savedAt: new Date(savedAt.getTime())
+  };
   try {
     getRuntimeSaveCallback()?.(event);
   } catch (error) {

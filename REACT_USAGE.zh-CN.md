@@ -364,7 +364,7 @@ const editorRef = useRef<FloorplanEditorHandle>(null);
 const event = await editorRef.current?.save();
 ```
 
-`onSave` 仅在 `dataStore.save()` 成功后触发。`source` 为 `'manual' | 'auto' | 'shortcut' | 'external'`，分别表示顶部保存按钮、自动保存、`Ctrl/Cmd+S` 和 `ref.save()`。`save()` 返回本次保存事件；当前没有项目时返回 `null`，保存失败时抛出存储层错误。
+`onSave` 仅在 `dataStore.save()` 成功后触发。回调中的 `project` 是脱离编辑器响应式状态的深度普通对象快照，嵌套对象和数组均不包含 Svelte 代理，日期字段保持为 `Date`。`source` 为 `'manual' | 'auto' | 'shortcut' | 'external'`，分别表示顶部保存按钮、自动保存、`Ctrl/Cmd+S` 和 `ref.save()`。`save()` 返回本次保存事件；当前没有项目时返回 `null`，保存失败时抛出存储层错误。
 
 ### 深色模式
 
