@@ -1,7 +1,7 @@
 {
 	"name": "floorplan2d",
 	"private": false,
-	"version": "0.9.1",
+	"version": "0.9.2",
 	"description": "Reusable 2D floor plan editor for React applications",
 	"author": "theLodgeStudio",
 	"license": "MIT",
