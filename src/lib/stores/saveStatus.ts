@@ -4,6 +4,7 @@ import { localStore } from '$lib/services/datastore';
 import { saveSnapshot } from '$lib/stores/versionHistory';
 import { getRuntimeDataStore, getRuntimeSaveCallback } from '$lib/runtime';
 import type { Project, SaveEvent, SaveSource } from '$lib/models/types';
+import { createProjectDataSnapshot } from '$lib/utils/projectFile';
 
 export type SaveState = 'saved' | 'unsaved' | 'saving';
 
@@ -14,20 +15,9 @@ function dataStore() {
   return getRuntimeDataStore() ?? localStore;
 }
 
-function toPlainValue<T>(value: T): T {
-  if (value instanceof Date) return new Date(value.getTime()) as T;
-  if (Array.isArray(value)) return value.map((item) => toPlainValue(item)) as T;
-  if (value && typeof value === 'object') {
-    const plain: Record<string, unknown> = {};
-    for (const key of Object.keys(value)) plain[key] = toPlainValue((value as Record<string, unknown>)[key]);
-    return plain as T;
-  }
-  return value;
-}
-
 function notifySaved(project: Project, source: SaveSource, savedAt: Date): SaveEvent {
   const event = {
-    project: toPlainValue(project),
+    project,
     source,
     savedAt: new Date(savedAt.getTime())
   };
@@ -88,12 +78,13 @@ async function autoSave() {
   if (!p) return;
   saveState.set('saving');
   try {
-    await dataStore().save(p);
+    const output = createProjectDataSnapshot(p);
+    await dataStore().save(output);
     captureThumbnail(p.id);
     const savedAt = new Date();
     saveState.set('saved');
     lastSavedAt.set(savedAt);
-    notifySaved(p, 'auto', savedAt);
+    notifySaved(output, 'auto', savedAt);
   } catch (e) {
     console.error('[AutoSave] Failed:', e);
     saveState.set('unsaved');
@@ -107,13 +98,14 @@ export async function manualSave(source: Exclude<SaveSource, 'auto'> = 'manual')
   if (!p) return null;
   saveState.set('saving');
   try {
-    await dataStore().save(p);
+    const output = createProjectDataSnapshot(p);
+    await dataStore().save(output);
     captureThumbnail(p.id);
-    saveSnapshot(p, 'Manual save');
+    saveSnapshot(output, 'Manual save');
     const savedAt = new Date();
     saveState.set('saved');
     lastSavedAt.set(savedAt);
-    return notifySaved(p, source, savedAt);
+    return notifySaved(output, source, savedAt);
   } catch (e) {
     console.error('[Save] Failed:', e);
     saveState.set('unsaved');

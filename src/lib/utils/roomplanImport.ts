@@ -677,10 +677,16 @@ export function importRoomPlan(jsonData: any, options: RoomPlanImportOptions = {
     });
   }
 
+  const wallPoints = walls.flatMap((wall) => [wall.start, wall.end, ...(wall.curvePoint ? [wall.curvePoint] : [])]);
+  const width = wallPoints.length > 0 ? Math.max(...wallPoints.map((point) => point.x)) - Math.min(...wallPoints.map((point) => point.x)) : 0;
+  const height = wallPoints.length > 0 ? Math.max(...wallPoints.map((point) => point.y)) - Math.min(...wallPoints.map((point) => point.y)) : 0;
+
   return {
     id: floorId,
     name: '一层',
     level: 0,
+    width,
+    height,
     walls,
     rooms,
     doors,

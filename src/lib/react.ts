@@ -250,7 +250,7 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
 
 export { createDefaultFloor, createDefaultProject, localStore };
 export { GenerateObjectsError };
-export { parseProjectFileData };
+export { createProjectDataSnapshot, parseProjectFileData } from './utils/projectFile';
 export type { ProjectFileData };
 export type { DataStore } from './services/datastore';
 export type { ThemePreference } from './stores/theme';

@@ -285,6 +285,8 @@ export interface Floor {
   id: string;
   name: string;
   level: number;
+  width: number;
+  height: number;
   walls: Wall[];
   rooms: Room[];
   doors: Door[];

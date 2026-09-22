@@ -1,4 +1,5 @@
 import type { Project } from '$lib/models/types';
+import { createProjectDataSnapshot } from '$lib/utils/projectFile';
 import { getCatalogItem } from '$lib/utils/furnitureCatalog';
 import { detectRooms, getRoomPolygon, roomCentroid } from '$lib/utils/roomDetection';
 import { projectSettings, formatArea } from '$lib/stores/settings';
@@ -166,9 +167,10 @@ export function exportAsPNG(canvas: HTMLCanvasElement, project?: Project) {
 }
 
 export function exportAsJSON(project: Project) {
-  const json = JSON.stringify(project, null, 2);
+  const output = createProjectDataSnapshot(project);
+  const json = JSON.stringify(output, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
-  download(blob, `${project.name || 'project'}.json`);
+  download(blob, `${output.name || 'project'}.json`);
 }
 
 export function exportAsSVG(project: Project) {

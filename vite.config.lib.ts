@@ -21,7 +21,7 @@ export interface OpeningCatalogConfig { showDoors?: boolean; showWindows?: boole
 export type ObjectShape = 'rectangle' | 'circle';
 export interface ObjectLabel { text: string; color?: string; fontSize?: number; offsetX?: number; offsetY?: number }
 export interface FurnitureItem { id: string; catalogId: string; position: Point; rotation: number; scale: { x: number; y: number; z: number }; color?: string; width?: number; depth?: number; height?: number; material?: string; locked?: boolean; label?: ObjectLabel }
-export interface Floor { id: string; name: string; level: number; walls: unknown[]; rooms: unknown[]; doors: unknown[]; windows: unknown[]; wallArt?: WallArt[]; furniture: FurnitureItem[]; stairs: unknown[]; columns: unknown[]; guides: unknown[]; measurements: unknown[]; annotations: unknown[]; textAnnotations: unknown[]; groups: unknown[]; walkthroughPoints?: WalkthroughPoint[] }
+export interface Floor { id: string; name: string; level: number; width: number; height: number; walls: unknown[]; rooms: unknown[]; doors: unknown[]; windows: unknown[]; wallArt?: WallArt[]; furniture: FurnitureItem[]; stairs: unknown[]; columns: unknown[]; guides: unknown[]; measurements: unknown[]; annotations: unknown[]; textAnnotations: unknown[]; groups: unknown[]; walkthroughPoints?: WalkthroughPoint[] }
 export interface CustomPattern { id: string; name: string; category?: string; src?: string; shape?: ObjectShape; color?: string; width: number; depth: number; height?: number }
 export interface DeviceInstanceInput { externalId?: string; floorId?: string; position: Point; rotation?: number; scale?: Partial<{ x: number; y: number; z: number }>; color?: string; width?: number; depth?: number; height?: number; material?: string; locked?: boolean; label?: string | ObjectLabel }
 export interface ExternalObjectInput extends DeviceInstanceInput { pattern: CustomPattern }
@@ -54,6 +54,7 @@ export const FloorplanEditor: ForwardRefExoticComponent<FloorplanEditorProps & R
 export function createDefaultFloor(level?: number): Floor;
 export function createDefaultProject(name?: string): Project;
 export function parseProjectFileData(data: ProjectFileData): Project;
+export function createProjectDataSnapshot(project: Project): Project;
 export const localStore: DataStore;
 `
       });

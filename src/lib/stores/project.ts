@@ -10,7 +10,7 @@ function uid(): string {
 
 export function createDefaultFloor(level = 0): Floor {
   const id = uid();
-  return { id, name: level === 0 ? '一层' : `${level + 1} 层`, level, walls: [], rooms: [], doors: [], windows: [], wallArt: [], furniture: [], stairs: [], columns: [], guides: [], measurements: [], annotations: [], textAnnotations: [], groups: [], walkthroughPoints: [] };
+  return { id, name: level === 0 ? '一层' : `${level + 1} 层`, level, width: 0, height: 0, walls: [], rooms: [], doors: [], windows: [], wallArt: [], furniture: [], stairs: [], columns: [], guides: [], measurements: [], annotations: [], textAnnotations: [], groups: [], walkthroughPoints: [] };
 }
 
 export function createDefaultProject(name = '未命名项目', customPatterns: CustomPattern[] = []): Project {
@@ -257,6 +257,16 @@ function mutate(fn: (floor: Floor) => void, description?: string) {
   const floor = p.floors.find((f) => f.id === p.activeFloorId);
   if (!floor) return;
   fn(floor);
+  if (floor.walls.length === 0) {
+    floor.width = 0;
+    floor.height = 0;
+  } else {
+    const points = floor.walls.flatMap((wall) => [wall.start, wall.end, ...(wall.curvePoint ? [wall.curvePoint] : [])]);
+    const xs = points.map((point) => point.x);
+    const ys = points.map((point) => point.y);
+    floor.width = Math.max(...xs) - Math.min(...xs);
+    floor.height = Math.max(...ys) - Math.min(...ys);
+  }
   p.updatedAt = new Date();
   currentProject.set({ ...p });
 }
@@ -829,7 +839,7 @@ export function addFloor(name?: string, copyCurrentLayout = false) {
   if (!p) return;
   snapshot('Added floor');
   const level = p.floors.length;
-  const floor: Floor = { id: uid(), name: name ?? `${level + 1} 层`, level, walls: [], rooms: [], doors: [], windows: [], wallArt: [], furniture: [], stairs: [], columns: [], guides: [], measurements: [], annotations: [], textAnnotations: [], groups: [], walkthroughPoints: [] };
+  const floor: Floor = { id: uid(), name: name ?? `${level + 1} 层`, level, width: 0, height: 0, walls: [], rooms: [], doors: [], windows: [], wallArt: [], furniture: [], stairs: [], columns: [], guides: [], measurements: [], annotations: [], textAnnotations: [], groups: [], walkthroughPoints: [] };
   if (copyCurrentLayout) {
     const cur = p.floors.find(f => f.id === p.activeFloorId);
     if (cur) {

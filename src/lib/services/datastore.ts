@@ -1,4 +1,5 @@
 import type { Project } from '$lib/models/types';
+import { createProjectDataSnapshot, parseProjectFileData } from '$lib/utils/projectFile';
 
 export interface DataStore {
   save(project: Project): Promise<void>;
@@ -23,7 +24,8 @@ function getAll(): Record<string, string> {
 export const localStore: DataStore = {
   async save(project) {
     const all = getAll();
-    all[project.id] = JSON.stringify(project);
+    const output = createProjectDataSnapshot(project);
+    all[output.id] = JSON.stringify(output);
     try {
       localStorage.setItem(KEY, JSON.stringify(all));
     } catch (e: any) {
@@ -31,7 +33,7 @@ export const localStore: DataStore = {
         console.warn('[DataStore] localStorage quota exceeded');
         // Attempt to save just this project by removing others if needed
         const minimal: Record<string, string> = {};
-        minimal[project.id] = all[project.id];
+        minimal[output.id] = all[output.id];
         try {
           localStorage.setItem(KEY, JSON.stringify(minimal));
           alert('Storage quota exceeded. Other projects were removed to save this one. Consider exporting important projects as JSON.');
@@ -66,7 +68,7 @@ export const localStore: DataStore = {
         if (!Number.isFinite(point.dwellTime)) point.dwellTime = 0;
       });
     }
-    return p as Project;
+    return parseProjectFileData(p);
   },
 
   async list() {

@@ -26,10 +26,15 @@ function makeProject(name: string, floor: Floor): Project {
 
 function makeFloor(walls: Wall[], doors: Door[], windows: Window[], furniture: FurnitureItem[] = []): Floor {
   const id = uid();
+  const points = walls.flatMap((wall) => [wall.start, wall.end, ...(wall.curvePoint ? [wall.curvePoint] : [])]);
+  const width = points.length > 0 ? Math.max(...points.map((point) => point.x)) - Math.min(...points.map((point) => point.x)) : 0;
+  const height = points.length > 0 ? Math.max(...points.map((point) => point.y)) - Math.min(...points.map((point) => point.y)) : 0;
   return {
     id,
     name: '一层',
     level: 0,
+    width,
+    height,
     walls,
     rooms: [],
     doors,

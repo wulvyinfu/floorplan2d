@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { createServer } from 'vite';
 
 const server = await createServer({ configFile: 'vite.config.lib.ts', server: { middlewareMode: true } });
-const { parseProjectFileData } = await server.ssrLoadModule('/src/lib/utils/projectFile.ts');
+const { createProjectDataSnapshot, parseProjectFileData } = await server.ssrLoadModule('/src/lib/utils/projectFile.ts');
 
 test('parses project JSON and normalizes legacy floors', () => {
   const source = {
@@ -20,9 +20,47 @@ test('parses project JSON and normalizes legacy floors', () => {
   assert.ok(project.updatedAt instanceof Date);
   assert.deepEqual(project.floors[0].furniture, []);
   assert.deepEqual(project.floors[0].walkthroughPoints, []);
+  assert.equal(project.floors[0].width, 0);
+  assert.equal(project.floors[0].height, 0);
   const copy = parseProjectFileData(source);
   copy.floors[0].walls.push({ id: 'test' });
   assert.equal(source.floors[0].walls.length, 0);
+});
+
+test('preserves dimensions or derives them from legacy walls', () => {
+  const base = {
+    id: 'dimensions', name: 'Dimensions', activeFloorId: 'floor',
+    createdAt: '2025-01-01T00:00:00.000Z', updatedAt: '2025-01-01T00:00:00.000Z'
+  };
+  const explicit = parseProjectFileData({ ...base, floors: [{ id: 'floor', width: 800, height: 600, walls: [] }] });
+  assert.equal(explicit.floors[0].width, 800);
+  assert.equal(explicit.floors[0].height, 600);
+  const derived = parseProjectFileData({
+    ...base,
+    floors: [{ id: 'floor', walls: [{ start: { x: -100, y: 20 }, end: { x: 500, y: 320 } }] }]
+  });
+  assert.equal(derived.floors[0].width, 600);
+  assert.equal(derived.floors[0].height, 300);
+});
+
+test('normalizes every floor in output snapshots', () => {
+  const project = parseProjectFileData({
+    id: 'output', name: 'Output', activeFloorId: 'first',
+    createdAt: '2025-01-01T00:00:00.000Z', updatedAt: '2025-01-01T00:00:00.000Z',
+    floors: [
+      { id: 'first', width: 1, height: 1, walls: [{ start: { x: 0, y: 0 }, end: { x: 900, y: 700 } }] },
+      { id: 'second', width: 500, height: 400, walls: [] }
+    ]
+  });
+  project.floors[0].width = 1;
+  project.floors[0].height = 1;
+  const output = createProjectDataSnapshot(project);
+  assert.equal(output.floors[0].width, 900);
+  assert.equal(output.floors[0].height, 700);
+  assert.equal(output.floors[1].width, 500);
+  assert.equal(output.floors[1].height, 400);
+  assert.notEqual(output, project);
+  assert.equal(project.floors[0].width, 1);
 });
 
 test('rejects invalid project data', () => {

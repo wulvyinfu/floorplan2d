@@ -232,6 +232,8 @@
       if (fi) { expand(fi.position.x, fi.position.y); continue; }
       if (currentFloor!.stairs) { const st = currentFloor!.stairs.find(s => s.id === id); if (st) { expand(st.position.x, st.position.y); continue; } }
       if (currentFloor!.columns) { const col = currentFloor!.columns.find(c => c.id === id); if (col) { expand(col.position.x, col.position.y); continue; } }
+      const walkthroughPoint = currentFloor!.walkthroughPoints?.find(point => point.id === id);
+      if (walkthroughPoint) { expand(walkthroughPoint.x, walkthroughPoint.y); continue; }
       // doors/windows — compute position on wall
       const door = currentFloor!.doors.find(d => d.id === id);
       if (door) { const w = currentFloor!.walls.find(w => w.id === door.wallId); if (w) { const cx = w.start.x + (w.end.x - w.start.x) * door.position; const cy = w.start.y + (w.end.y - w.start.y) * door.position; expand(cx, cy); } continue; }
@@ -2299,6 +2301,8 @@
             if (fi) { origPositions.set(id, { position: { ...fi.position } }); continue; }
             if (currentFloor.stairs) { const st = currentFloor.stairs.find(s => s.id === id); if (st) { origPositions.set(id, { position: { ...st.position } }); continue; } }
             if (currentFloor.columns) { const col = currentFloor.columns.find(c => c.id === id); if (col) { origPositions.set(id, { position: { ...col.position } }); continue; } }
+            const walkthroughPoint = currentFloor.walkthroughPoints?.find(point => point.id === id);
+            if (walkthroughPoint) { origPositions.set(id, { position: { x: walkthroughPoint.x, y: walkthroughPoint.y } }); continue; }
           }
           draggingMultiSelect = { startMousePos: { ...wp }, origPositions };
           commitFurnitureMove();
@@ -2703,6 +2707,7 @@
           if (fi) { moveFurniture(id, newPos); continue; }
           if (currentFloor.stairs) { const st = currentFloor.stairs.find(s => s.id === id); if (st) { moveStair(id, newPos); continue; } }
           if (currentFloor.columns) { const col = currentFloor.columns.find(c => c.id === id); if (col) { moveColumn(id, newPos); continue; } }
+          if (currentFloor.walkthroughPoints?.some(point => point.id === id)) { moveWalkthroughPoint(id, newPos); continue; }
         }
       }
     }
@@ -3807,7 +3812,7 @@
       }
       return null;
     })()}
-    {#if el}
+    <!-- {#if el}
       <div
         class="absolute z-40 flex items-center gap-0.5 bg-white rounded-lg shadow-lg border border-gray-200 px-1 py-0.5"
         style="left: {el.pos.x}px; top: {el.pos.y - 44}px; transform: translateX(-50%);"
@@ -3874,7 +3879,7 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14"/></svg>
         </button>
       </div>
-    {/if}
+    {/if} -->
   {/if}
   {#if currentTool === 'wall' && wallStart}
     <div class="absolute top-2 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-3 py-1 rounded-full text-xs shadow">

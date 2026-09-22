@@ -1,6 +1,7 @@
 import { writable, get } from 'svelte/store';
 import { currentProject, loadProject } from './project';
 import type { Project } from '$lib/models/types';
+import { createProjectDataSnapshot } from '$lib/utils/projectFile';
 
 export interface Snapshot {
   timestamp: number;
@@ -44,7 +45,7 @@ export function saveSnapshot(project: Project, description: string) {
   snapshots.push({
     timestamp: Date.now(),
     description,
-    data: JSON.stringify(project),
+    data: JSON.stringify(createProjectDataSnapshot(project)),
   });
   // Prune to keep last MAX_SNAPSHOTS
   while (snapshots.length > MAX_SNAPSHOTS) {

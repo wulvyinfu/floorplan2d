@@ -25,7 +25,7 @@
   import CommandPalette from '$lib/components/editor/CommandPalette.svelte';
   import PrintLayout from '$lib/components/editor/PrintLayout.svelte';
   import OnboardingTooltip from '$lib/components/OnboardingTooltip.svelte';
-  import { parseProjectFileData } from '$lib/utils/projectFile';
+  import { createProjectDataSnapshot, parseProjectFileData } from '$lib/utils/projectFile';
   import type { ProjectFileData } from '$lib/utils/projectFile';
 
   export interface FloorplanEditorHandle {
@@ -162,7 +162,7 @@
     let value: Project | null = null;
     const unsubscribe = currentProject.subscribe((project) => value = project);
     unsubscribe();
-    return value;
+    return value ? createProjectDataSnapshot(value) : null;
   }
 
   export function loadProject(nextProject: Project) {
@@ -333,7 +333,7 @@
         }
       }
       try {
-        onProjectChange?.(nextProject);
+        onProjectChange?.(createProjectDataSnapshot(nextProject));
       } catch (error) {
         console.error('项目变更回调执行失败', error);
       }

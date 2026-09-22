@@ -17,15 +17,38 @@ function parseDate(value: unknown, field: string): Date {
   return date;
 }
 
+export function getFloorDimensions(floor: Partial<Floor>): { width: number; height: number } {
+  if ((!floor.walls || floor.walls.length === 0) && typeof floor.width === 'number' && Number.isFinite(floor.width) && floor.width >= 0 && typeof floor.height === 'number' && Number.isFinite(floor.height) && floor.height >= 0) {
+    return { width: floor.width, height: floor.height };
+  }
+  const points = (floor.walls ?? []).flatMap((wall) => [wall.start, wall.end, ...(wall.curvePoint ? [wall.curvePoint] : [])]);
+  if (points.length === 0) return { width: 0, height: 0 };
+  const xs = points.map((point) => point.x);
+  const ys = points.map((point) => point.y);
+  return {
+    width: Math.max(...xs) - Math.min(...xs),
+    height: Math.max(...ys) - Math.min(...ys)
+  };
+}
+
+export function createProjectDataSnapshot(project: Project): Project {
+  const snapshot = cloneValue(project);
+  snapshot.floors = snapshot.floors.map((floor) => ({ ...floor, ...getFloorDimensions(floor) }));
+  return snapshot;
+}
+
 function normalizeFloor(value: unknown, index: number): Floor {
   if (!value || typeof value !== 'object') throw new Error(`项目文件中的楼层 ${index + 1} 格式无效`);
   const floor = cloneValue(value) as Partial<Floor>;
   if (typeof floor.id !== 'string' || !floor.id) throw new Error(`项目文件中的楼层 ${index + 1} 缺少 id`);
   if (!Array.isArray(floor.walls)) throw new Error(`项目文件中的楼层 ${index + 1} 缺少 walls`);
+  const dimensions = getFloorDimensions(floor);
   return {
     ...floor,
     name: typeof floor.name === 'string' ? floor.name : `楼层 ${index + 1}`,
     level: typeof floor.level === 'number' ? floor.level : index,
+    width: dimensions.width,
+    height: dimensions.height,
     walls: floor.walls,
     rooms: Array.isArray(floor.rooms) ? floor.rooms : [],
     doors: Array.isArray(floor.doors) ? floor.doors : [],

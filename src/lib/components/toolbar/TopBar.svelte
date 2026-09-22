@@ -4,6 +4,7 @@
   import { get } from 'svelte/store';
   import type { Floor, Project } from '$lib/models/types';
   import { exportAsPNG, exportAsJSON, exportAsSVG, exportPDF } from '$lib/utils/export';
+  import { createProjectDataSnapshot } from '$lib/utils/projectFile';
   import { exportDXF, exportDWG } from '$lib/utils/cadExport';
   import { importRoomPlan } from '$lib/utils/roomplanImport';
   import SettingsDialog from './SettingsDialog.svelte';
@@ -117,7 +118,8 @@
   function onShareProject() {
     const p = get(currentProject);
     if (!p) return;
-    const json = JSON.stringify(p, null, 2);
+    const output = createProjectDataSnapshot(p);
+    const json = JSON.stringify(output, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

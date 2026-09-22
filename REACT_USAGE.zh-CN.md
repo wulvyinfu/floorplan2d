@@ -132,7 +132,7 @@ import { parseProjectFileData } from 'floorplan2d';
 const project = parseProjectFileData(fileData);
 ```
 
-解析器会恢复 `createdAt`、`updatedAt` 为 `Date`，补齐旧文件缺少的楼层数组字段，并在 `activeFloorId` 无效时切换到第一个楼层。JSON 格式错误或缺少 `id`、`name`、`floors`、`walls` 等必要字段时会抛出 `Error`。
+解析器会恢复 `createdAt`、`updatedAt` 为 `Date`，补齐旧文件缺少的楼层数组字段，并在 `activeFloorId` 无效时切换到第一个楼层。每个楼层包含 `width` 和 `height`，单位为厘米；存在墙体时根据墙体端点和曲线控制点的坐标范围计算，无墙楼层保留第三方传入的合法尺寸，否则为 `0 × 0`。所有保存数据、保存回调、JSON/分享文件、`getProject()` 和 `onProjectChange` 都会在输出前重新规范化每个楼层的尺寸。JSON 格式错误或缺少 `id`、`name`、`floors`、`walls` 等必要字段时会抛出 `Error`。
 
 ## 5. 自定义物件目录
 
