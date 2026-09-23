@@ -20,6 +20,8 @@ export interface FloorplanEditorHandle {
   getProject(): Project | null;
   loadProject(project: Project): void;
   updateFileData(data: ProjectFileData): void;
+  getWallHeight(): number | null;
+  setWallHeight(height: number): void;
   focus(): void;
   registerPattern(pattern: CustomPattern): void;
   removePattern(id: string): void;
@@ -121,7 +123,9 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
   useImperativeHandle(forwardedRef, () => ({
     getProject: () => handleRef.current?.getProject() ?? null,
     loadProject: (nextProject) => handleRef.current?.loadProject(nextProject),
-    updateFileData: (data) => handleRef.current?.loadProject(parseProjectFileData(data)),
+    updateFileData: (data) => handleRef.current?.updateFileData(data),
+    getWallHeight: () => handleRef.current?.getWallHeight() ?? null,
+    setWallHeight: (height) => handleRef.current?.setWallHeight(height),
     focus: () => handleRef.current?.focus(),
     registerPattern: (pattern) => handleRef.current?.registerPattern(pattern),
     removePattern: (id) => handleRef.current?.removePattern(id),
@@ -221,7 +225,7 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
   useEffect(() => {
     if (!effectiveObjects || !handleRef.current) return;
     const current = handleRef.current.getProject();
-    if (current) handleRef.current.loadProject({ ...current, customPatterns: effectiveObjects });
+    if (current) handleRef.current.loadProject({ ...current, customPatterns: [...(current.customPatterns ?? []), ...effectiveObjects] });
   }, [effectiveObjects]);
 
   useEffect(() => {

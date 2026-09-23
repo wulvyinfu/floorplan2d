@@ -1,4 +1,5 @@
 import type { Floor, Project } from '$lib/models/types';
+import { mergeCustomPatterns } from '$lib/utils/customPatterns';
 
 export type ProjectFileData = string | Project | Record<string, unknown>;
 
@@ -33,7 +34,11 @@ export function getFloorDimensions(floor: Partial<Floor>): { width: number; heig
 
 export function createProjectDataSnapshot(project: Project): Project {
   const snapshot = cloneValue(project);
+  const wallHeight = Number.isFinite(snapshot.wallHeight) && snapshot.wallHeight > 0 ? snapshot.wallHeight : 280;
+  snapshot.wallHeight = wallHeight;
   snapshot.floors = snapshot.floors.map((floor) => ({ ...floor, ...getFloorDimensions(floor) }));
+  snapshot.floors.forEach((floor) => floor.walls.forEach((wall) => { wall.height = wallHeight; }));
+  snapshot.customPatterns = mergeCustomPatterns(snapshot.customPatterns);
   return snapshot;
 }
 
@@ -81,6 +86,9 @@ export function parseProjectFileData(input: ProjectFileData): Project {
   if (typeof source.name !== 'string' || !source.name) throw new Error('项目文件缺少 name');
   if (!Array.isArray(source.floors) || source.floors.length === 0) throw new Error('项目文件必须包含至少一个楼层');
   const floors = source.floors.map(normalizeFloor);
+  const wallHeights = floors.flatMap((floor) => floor.walls.map((wall) => wall.height)).filter((height) => Number.isFinite(height) && height > 0);
+  const wallHeight = typeof source.wallHeight === 'number' && Number.isFinite(source.wallHeight) && source.wallHeight > 0 ? source.wallHeight : wallHeights[0] ?? 280;
+  floors.forEach((floor) => floor.walls.forEach((wall) => { wall.height = wallHeight; }));
   const activeFloorId = typeof source.activeFloorId === 'string' && floors.some((floor) => floor.id === source.activeFloorId)
     ? source.activeFloorId
     : floors[0].id;
@@ -92,6 +100,7 @@ export function parseProjectFileData(input: ProjectFileData): Project {
     activeFloorId,
     createdAt: parseDate(source.createdAt, 'createdAt'),
     updatedAt: parseDate(source.updatedAt, 'updatedAt'),
-    customPatterns: Array.isArray(source.customPatterns) ? cloneValue(source.customPatterns) : []
+    wallHeight,
+    customPatterns: mergeCustomPatterns(Array.isArray(source.customPatterns) ? cloneValue(source.customPatterns) : [])
   } as Project;
 }

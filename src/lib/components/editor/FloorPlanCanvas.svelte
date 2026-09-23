@@ -252,7 +252,7 @@
   function snapFurnitureToWall(pos: Point, catalogId: string, currentRotation: number): { position: Point; rotation: number; wallId: string; side: 'normal' | 'anti'; wallAngle: number } | null {
     if (!currentFloor) return null;
     const cat = getCatalogItem(catalogId);
-    if (!cat) return null;
+    if (!cat || cat.snapToWall === false) return null;
 
     // Furniture half-depth (the "back" dimension that goes against the wall)
     const halfDepth = cat.depth / 2;

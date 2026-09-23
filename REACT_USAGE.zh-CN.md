@@ -150,7 +150,8 @@ const customObjects: CustomPattern[] = [
     width: 60,
     depth: 120,
     height: 200,
-    color: '#475569'
+    color: '#475569',
+    snapToWall: false
   },
   {
     id: 'temperature-sensor',
@@ -183,6 +184,10 @@ type ObjectShape = 'rectangle' | 'circle';
 ```
 
 传入图片时优先显示图片；图片缺失或加载失败时使用 `shape`。远程图片需要允许浏览器跨域访问。
+
+`snapToWall` 控制交互式放置和单件拖动时是否自动贴墙并旋转，默认值为 `true`；设为 `false` 时物件保持普通网格位置和当前旋转。批量生成、模板、RoomPlan 导入和多选整体移动不会逐个执行墙体吸附。
+
+外部 `customObjects` 会和项目文件中的 `customPatterns` 按 `id` 合并，不会被 `initialFileData`、`loadProject()`、`updateFileData()` 或编辑器内文件导入覆盖。同名时外部定义优先，不同 ID 的文件内素材会继续保留。
 
 ## 6. 批量生成相同设备
 
@@ -579,6 +584,8 @@ interface FloorplanEditorHandle {
   getProject(): Project | null;
   loadProject(project: Project): void;
   updateFileData(data: ProjectFileData): void;
+  getWallHeight(): number | null;
+  setWallHeight(height: number): void;
   focus(): void;
   registerPattern(pattern: CustomPattern): void;
   removePattern(id: string): void;
@@ -606,6 +613,15 @@ interface FloorplanEditorHandle {
   normalizeCoordinates(floorId?: string): Point | null;
 }
 ```
+
+项目统一墙高保存在 `Project.wallHeight`，单位为厘米。设置后会一次同步所有楼层中每面墙的兼容字段 `Wall.height`，新创建的墙也使用该高度：
+
+```tsx
+editorRef.current?.setWallHeight(320);
+const wallHeight = editorRef.current?.getWallHeight();
+```
+
+也可以在编辑器右上角“设置 → 项目 → 统一墙体高度”中修改。旧项目没有 `wallHeight` 时会从已有墙体高度推导，没有墙体时默认使用 `280`。
 
 坐标归一化会将指定楼层（省略 `floorId` 时为当前楼层）的墙体包围盒中心移动到世界原点 `(0, 0)`，并同步平移家具、楼梯、柱、标注、测量、辅助线、漫游点及背景图等绝对坐标。门窗和壁画使用墙体相对位置，无需单独换算。返回值是实际应用的平移量；没有墙体时返回 `null`。
 
@@ -816,7 +832,7 @@ export default function App() {
 - 建造模块默认展示全部 6 种门和 5 种窗，可通过 `openingCatalog` 隐藏整个分类或限制具体类型。
 - 壁画保存在 `Floor.wallArt` 中，旧项目缺少该字段时按空数组处理。
 - 使用 ref 方法前应确保组件已经挂载，可通过 `onReady` 获取就绪通知。
-- 不建议同时使用 `customObjects` 受控属性和 `registerPattern()` 修改同一物件 ID。
+- 外部 `customObjects` 与文件素材按 ID 合并，同名时外部定义优先；运行时 `registerPattern()` 修改同一 ID 后，下一次项目导入会恢复外部定义。
 - `loadProject()` 不会触发物件或漫游标点的新增回调。
 - 项目 JSON 中的日期从服务端读取后应恢复为 `Date` 对象。
 - 当前版本适合单编辑器实例页面；同页多实例仍可能共享内部状态。

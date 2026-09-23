@@ -12,9 +12,9 @@
   import { resolvedTheme, themePreference, type ThemePreference } from '$lib/stores/theme';
   import { manualSave } from '$lib/stores/saveStatus';
   import { activeFloor, copySelectedElements, parseElementClipboard, pasteCopiedElements, selectedElementId, selectedElementIds, selectedRoomId, serializeElementClipboard } from '$lib/stores/project';
-  import { addWalkthroughPoint as addProjectWalkthroughPoint, currentProject, createDefaultProject, generateObjects as generateProjectObjects, insertWalkthroughPoint as insertProjectWalkthroughPoint, normalizeCoordinates as normalizeProjectCoordinates, selectedTool, setWalkthroughPoints as setProjectWalkthroughPoints, updateWalkthroughPoint as updateProjectWalkthroughPoint } from '$lib/stores/project';
+  import { addWalkthroughPoint as addProjectWalkthroughPoint, currentProject, createDefaultProject, generateObjects as generateProjectObjects, insertWalkthroughPoint as insertProjectWalkthroughPoint, normalizeCoordinates as normalizeProjectCoordinates, selectedTool, setWallHeight as setProjectWallHeight, setWalkthroughPoints as setProjectWalkthroughPoints, updateWalkthroughPoint as updateProjectWalkthroughPoint } from '$lib/stores/project';
   import type { Tool } from '$lib/stores/project';
-  import { registerCustomPattern, removeCustomPattern, setCustomPatterns } from '$lib/utils/customPatterns';
+  import { mergeCustomPatterns, registerCustomPattern, removeCustomPattern, setCustomPatterns } from '$lib/utils/customPatterns';
   import TopBar from '$lib/components/toolbar/TopBar.svelte';
   import BuildPanel from '$lib/components/sidebar/BuildPanel.svelte';
   import PropertiesPanel from '$lib/components/sidebar/PropertiesPanel.svelte';
@@ -32,6 +32,8 @@
     getProject(): Project | null;
     loadProject(project: Project): void;
     updateFileData(data: ProjectFileData): void;
+    getWallHeight(): number | null;
+    setWallHeight(height: number): void;
     focus(): void;
     registerPattern(pattern: CustomPattern): void;
     removePattern(id: string): void;
@@ -143,6 +145,8 @@
   let knownObjectIds = new Set<string>();
   let knownWalkthroughPointIds = new Set<string>();
   let walkthroughPointSource: WalkthroughPointAddedEvent['source'] = 'editor';
+  let handledProjectInput: Project | undefined;
+  let publishedProjectSignature = '';
 
   $effect(() => {
     if (!ready) return;
@@ -153,9 +157,11 @@
   });
 
   $effect(() => {
-    if (ready && get(currentProject) !== project) {
-      currentProject.set(project);
-    }
+    if (!ready || project === handledProjectInput) return;
+    const signature = JSON.stringify(project);
+    handledProjectInput = project;
+    if (signature === publishedProjectSignature) return;
+    loadProject(project);
   });
 
   export function getProject(): Project | null {
@@ -166,13 +172,25 @@
   }
 
   export function loadProject(nextProject: Project) {
-    knownObjectIds = new Set(nextProject.floors.flatMap((floor) => floor.furniture.map((item) => item.id)));
-    knownWalkthroughPointIds = new Set(nextProject.floors.flatMap((floor) => (floor.walkthroughPoints ?? []).map((point) => point.id)));
-    currentProject.set(nextProject);
+    const mergedProject = parseProjectFileData({
+      ...nextProject,
+      customPatterns: mergeCustomPatterns(nextProject.customPatterns, customPatterns)
+    });
+    knownObjectIds = new Set(mergedProject.floors.flatMap((floor) => floor.furniture.map((item) => item.id)));
+    knownWalkthroughPointIds = new Set(mergedProject.floors.flatMap((floor) => (floor.walkthroughPoints ?? []).map((point) => point.id)));
+    currentProject.set(mergedProject);
   }
 
   export function updateFileData(data: ProjectFileData) {
     loadProject(parseProjectFileData(data));
+  }
+
+  export function getWallHeight(): number | null {
+    return get(currentProject)?.wallHeight ?? null;
+  }
+
+  export function setWallHeight(height: number) {
+    setProjectWallHeight(height);
   }
 
   export function focus() {
@@ -282,8 +300,8 @@
 
   onMount(() => {
     configureRuntime({ dataStore, onSave });
-    currentProject.set(project);
-    if (customPatterns) setCustomPatterns(customPatterns);
+    handledProjectInput = project;
+    currentProject.set(parseProjectFileData({ ...project, customPatterns: mergeCustomPatterns(project.customPatterns, customPatterns) }));
     const initialProject = get(currentProject);
     knownObjectIds = new Set(initialProject?.floors.flatMap((floor) => floor.furniture.map((item) => item.id)) ?? []);
     knownWalkthroughPointIds = new Set(initialProject?.floors.flatMap((floor) => (floor.walkthroughPoints ?? []).map((point) => point.id)) ?? []);
@@ -292,6 +310,13 @@
     let first = true;
     const unsubscribeProject = currentProject.subscribe((nextProject) => {
       if (!nextProject) return;
+      if (customPatterns?.length) {
+        const mergedPatterns = mergeCustomPatterns(nextProject.customPatterns, customPatterns);
+        if (JSON.stringify(mergedPatterns) !== JSON.stringify(nextProject.customPatterns ?? [])) {
+          currentProject.set({ ...nextProject, customPatterns: mergedPatterns });
+          return;
+        }
+      }
       if (first) {
         first = false;
         return;
@@ -317,6 +342,8 @@
       }
       knownObjectIds = nextIds;
       knownWalkthroughPointIds = new Set(nextProject.floors.flatMap((floor) => (floor.walkthroughPoints ?? []).map((point) => point.id)));
+      publishedProjectSignature = JSON.stringify(nextProject);
+      handledProjectInput = nextProject;
       project = nextProject;
       for (const event of addedEvents) {
         try {
@@ -339,7 +366,7 @@
       }
     });
 
-    onReady?.({ getProject, loadProject, updateFileData, focus, registerPattern, removePattern, setRoomCatalogs, setOpeningCatalog, generateObjects, preGenerateObjectGrid, setTool, addWalkthroughPoint, setWalkthroughPoints, updateWalkthroughPoint, insertWalkthroughPoint, normalizeCoordinates, copySelection, pasteSelection, save });
+    onReady?.({ getProject, loadProject, updateFileData, getWallHeight, setWallHeight, focus, registerPattern, removePattern, setRoomCatalogs, setOpeningCatalog, generateObjects, preGenerateObjectGrid, setTool, addWalkthroughPoint, setWalkthroughPoints, updateWalkthroughPoint, insertWalkthroughPoint, normalizeCoordinates, copySelection, pasteSelection, save });
     root.addEventListener('keydown', handleKeydown);
 
     return () => {

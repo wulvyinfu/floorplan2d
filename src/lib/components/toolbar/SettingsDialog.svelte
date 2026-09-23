@@ -1,18 +1,20 @@
 <script lang="ts">
   import { projectSettings } from '$lib/stores/settings';
   import type { ProjectSettings } from '$lib/stores/settings';
-  import { currentProject, updateProjectName } from '$lib/stores/project';
+  import { currentProject, setWallHeight, updateProjectName } from '$lib/stores/project';
   import type { Project } from '$lib/models/types';
   import { themePreference, type ThemePreference } from '$lib/stores/theme';
 
   let { open = $bindable(false) }: { open: boolean } = $props();
   let projectName = $state('');
   let projectDescription = $state('');
+  let wallHeight = $state(280);
 
   currentProject.subscribe((p) => {
     if (p) {
       projectName = p.name;
       projectDescription = p.description ?? '';
+      wallHeight = p.wallHeight ?? 280;
     }
   });
 
@@ -27,6 +29,13 @@
       if (p) return { ...p, description: projectDescription };
       return p;
     });
+  }
+
+  function onWallHeightChange(e: Event) {
+    const value = Number((e.target as HTMLInputElement).value);
+    if (!Number.isFinite(value) || value <= 0) return;
+    wallHeight = value;
+    setWallHeight(value);
   }
   let activeTab = $state<'project' | 'dimensions' | 'appearance' | 'ai'>('project');
   let geminiKey = $state('');
@@ -175,6 +184,17 @@
                 class="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none resize-none bg-white dark:bg-gray-700 dark:text-gray-100"
                 placeholder="添加项目描述……"
               ></textarea>
+            </label>
+            <label class="block">
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">统一墙体高度（cm）</span>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={wallHeight}
+                onchange={onWallHeightChange}
+                class="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
+              />
             </label>
           </div>
 

@@ -26,7 +26,7 @@
   let activeTab = $state<'draw' | 'rooms' | 'objects' | 'custom'>('draw');
   let selectedCategory = $state<string>('All');
   let customPatterns = $state(getCustomPatterns());
-  let allFurniture = $derived(customPatterns.map((item) => ({ ...item, category: item.category || '自定义物件', color: item.color || '#64748b', height: item.height ?? 0, icon: '图', pattern: true as const })));
+  let allFurniture = $derived(customPatterns.map((item) => ({ ...item, category: item.category || '自定义物件', color: item.color || '#64748b', height: item.height ?? 0, snapToWall: item.snapToWall ?? true, icon: '图', pattern: true as const })));
   let allCategories = $derived([...new Set(customPatterns.map((item) => item.category || '自定义物件'))]);
   currentProject.subscribe((project) => { customPatterns = project?.customPatterns ?? []; });
 

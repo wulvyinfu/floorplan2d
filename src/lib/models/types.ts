@@ -115,6 +115,7 @@ export interface CustomPattern {
   width: number;
   depth: number;
   height?: number;
+  snapToWall?: boolean;
 }
 
 export interface ExternalObjectInput {
@@ -334,6 +335,7 @@ export interface Project {
   activeFloorId: string;
   createdAt: Date;
   updatedAt: Date;
+  wallHeight: number;
   customPatterns?: CustomPattern[];
 }
 

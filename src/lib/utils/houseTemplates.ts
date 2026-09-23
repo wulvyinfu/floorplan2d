@@ -21,6 +21,7 @@ function makeProject(name: string, floor: Floor): Project {
     activeFloorId: floor.id,
     createdAt: new Date(),
     updatedAt: new Date(),
+    wallHeight: 280,
   };
 }
 

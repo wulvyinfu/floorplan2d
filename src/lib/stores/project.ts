@@ -22,6 +22,7 @@ export function createDefaultProject(name = '未命名项目', customPatterns: C
     activeFloorId: floor.id,
     createdAt: new Date(),
     updatedAt: new Date(),
+    wallHeight: 280,
     customPatterns,
   };
 }
@@ -342,12 +343,24 @@ export function normalizeCoordinates(floorId?: string): Point | null {
 
 export function addWall(start: Point, end: Point): string {
   const id = uid();
+  const wallHeight = get(currentProject)?.wallHeight ?? 280;
   mutate((f) => {
-    f.walls.push({ id, start, end, thickness: 15, height: 280, color: '#444444' });
+    f.walls.push({ id, start, end, thickness: 15, height: wallHeight, color: '#444444' });
   }, 'Added wall');
   // Onboarding tip
   import('$lib/stores/onboarding.svelte').then(m => m.triggerTip('first-wall', end.x > 400 ? 300 : end.x + 20, 120));
   return id;
+}
+
+export function setWallHeight(height: number): void {
+  if (!Number.isFinite(height) || height <= 0) throw new Error('墙体高度必须大于 0');
+  const project = get(currentProject);
+  if (!project || project.wallHeight === height) return;
+  snapshot('Updated wall height');
+  project.wallHeight = height;
+  project.floors.forEach((floor) => floor.walls.forEach((wall) => { wall.height = height; }));
+  project.updatedAt = new Date();
+  currentProject.set({ ...project });
 }
 
 export function removeWall(id: string) {
