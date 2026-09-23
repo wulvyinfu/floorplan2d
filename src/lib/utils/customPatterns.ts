@@ -9,9 +9,9 @@ export function normalizePattern(pattern: CustomPattern): CustomPattern {
   if (!pattern.name.trim()) throw new Error('自定义图案名称不能为空');
   if (!Number.isFinite(pattern.width) || pattern.width <= 0) throw new Error('自定义图案宽度必须大于 0');
   if (!Number.isFinite(pattern.depth) || pattern.depth <= 0) throw new Error('自定义图案深度必须大于 0');
-  if (pattern.src && !/^(data:image\/(?:svg\+xml|png|jpeg|webp);|https?:\/\/)/i.test(pattern.src)) {
-    throw new Error('自定义图案仅支持图片 data URL 或 HTTP(S) 地址');
-  }
+  // if (pattern.src && !/^(data:image\/(?:svg\+xml|png|jpeg|webp);|https?:\/\/)/i.test(pattern.src)) {
+  //   throw new Error('自定义图案仅支持图片 data URL 或 HTTP(S) 地址');
+  // }
   if (pattern.snapToWall != null && typeof pattern.snapToWall !== 'boolean') throw new Error('自定义图案 snapToWall 必须是布尔值');
   return { ...pattern, id: pattern.id.trim(), name: pattern.name.trim(), category: pattern.category?.trim() || '自定义物件', shape: pattern.shape ?? 'rectangle', snapToWall: pattern.snapToWall ?? true };
 }

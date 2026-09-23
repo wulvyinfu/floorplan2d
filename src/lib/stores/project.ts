@@ -458,7 +458,7 @@ export function generateObjects(input: GenerateObjectsInput): GenerateObjectsRes
     if (!pattern?.name?.trim()) issues.push(`${path}的名称不能为空`);
     if (!Number.isFinite(pattern?.width) || pattern.width <= 0) issues.push(`${path}的图案宽度必须大于 0`);
     if (!Number.isFinite(pattern?.depth) || pattern.depth <= 0) issues.push(`${path}的图案深度必须大于 0`);
-    if (pattern?.src && !/^(data:image\/(?:svg\+xml|png|jpeg|webp);|https?:\/\/)/i.test(pattern.src)) issues.push(`${path}的图案地址格式无效`);
+    // if (pattern?.src && !/^(data:image\/(?:svg\+xml|png|jpeg|webp);|https?:\/\/)/i.test(pattern.src)) issues.push(`${path}的图案地址格式无效`);
     if (pattern?.shape && pattern.shape !== 'rectangle' && pattern.shape !== 'circle') issues.push(`${path}的形状仅支持 rectangle 或 circle`);
     if (!Number.isFinite(item.position?.x) || !Number.isFinite(item.position?.y)) issues.push(`${path}的坐标无效`);
     if (item.rotation !== undefined && !Number.isFinite(item.rotation)) issues.push(`${path}的旋转角度无效`);
