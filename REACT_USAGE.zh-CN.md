@@ -410,17 +410,47 @@ const event = await editorRef.current?.save();
 
 `theme` 支持 `light`、`dark`、`system`（跟随系统）。不传时沿用已保存的主题偏好。顶部太阳/月亮按钮可快捷切换，也可以在设置中选择跟随系统。侧栏、表单和画布背景/网格随主题变化；物件颜色和导出工程图保持不变。主题偏好是全局共享的，并同步页面根节点的 `dark` 类。
 
-`modules.properties` 会完全覆盖内置右侧属性栏，适用于墙、门、窗、壁画、家具、房间、楼梯、柱、文本标注和漫游标点。回调参数是当前选中的属性对象，未选中时为 `null`。
+### 自定义属性栏
+
+`modules.properties` 可按回调返回值替换内置右侧属性栏，适用于墙、门、窗、壁画、家具、房间、楼梯、柱、文本标注和漫游标点。回调参数是当前选中的属性对象，额外包含 `kind` 种类标识，未选中时为 `null`。原有属性保持平铺，可继续使用 `selected.id` 等访问方式；模型自身的 `type` 字段保持原义。
+
+- 返回自定义内容时，使用该内容替换默认属性栏。
+- 无返回值（未写 `return` 或直接 `return;`），或返回 `undefined`、`null` 时，使用默认属性栏；未配置该回调时也使用默认属性栏。
+- 回调类型为 `(selected: PropertiesSelection | null) => ReactNode | void`，支持根据选中对象决定是否自定义。切换默认与自定义属性栏不会重新初始化编辑器，也不会重置当前选中状态。
+
+`PropertiesSelection` 是从 `floorplan2d` 导出的判别联合类型（可通过 `import type { PropertiesSelection } from 'floorplan2d'` 引入）。判断 `selected.kind` 后，TypeScript 会将对象收窄为对应模型与种类标识的交叉类型：
+
+| `kind` | 对应模型 |
+| --- | --- |
+| `wall` | `Wall` |
+| `door` | `Door` |
+| `window` | `Window` |
+| `wallArt` | `WallArt` |
+| `furniture` | `FurnitureItem` |
+| `room` | `Room` |
+| `stair` | `Stair` |
+| `column` | `Column` |
+| `textAnnotation` | `TextAnnotation` |
+| `walkthroughPoint` | `WalkthroughPoint` |
+
+以下示例仅为家具返回自定义界面，其余对象和未选中状态使用默认属性栏：
 
 ```tsx
 <FloorplanEditor
   modules={{
-    properties: (selected) => (
-      <div className="w-72 p-4">
-        <h3>当前属性</h3>
-        <pre>{JSON.stringify(selected, null, 2)}</pre>
-      </div>
-    )
+    properties: (selected) => {
+      if (selected?.kind === 'furniture') {
+        return (
+          <div className="w-72 p-4">
+            <h3>家具属性</h3>
+            <p>对象 ID：{selected.id}</p>
+            <p>目录 ID：{selected.catalogId}</p>
+            <pre>{JSON.stringify(selected, null, 2)}</pre>
+          </div>
+        );
+      }
+      return;
+    }
   }}
 />
 ```

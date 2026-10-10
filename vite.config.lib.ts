@@ -16,6 +16,15 @@ export interface Point { x: number; y: number }
 export interface WalkthroughPoint extends Point { id: string; name?: string; dwellTime?: number }
 export type DoorType = 'single' | 'double' | 'sliding' | 'french' | 'pocket' | 'bifold';
 export type WindowType = 'standard' | 'fixed' | 'casement' | 'sliding' | 'bay';
+export interface Wall { id: string; start: Point; end: Point; thickness: number; height: number; color: string; curvePoint?: Point; texture?: string; interiorColor?: string; interiorTexture?: string; exteriorColor?: string; exteriorTexture?: string }
+export interface Door { id: string; wallId: string; position: number; width: number; height: number; type: DoorType; swingDirection: 'left' | 'right'; flipSide: boolean }
+export interface Window { id: string; wallId: string; position: number; width: number; height: number; sillHeight: number; type: WindowType }
+export type RoomCategory = 'indoor' | 'outdoor' | 'garage' | 'utility';
+export interface Room { id: string; name: string; walls: string[]; floorTexture: string; area: number; color?: string; roomType?: RoomCategory; labelOffset?: Point }
+export type StairType = 'straight' | 'l-shaped' | 'u-shaped' | 'spiral';
+export interface Stair { id: string; position: Point; rotation: number; width: number; depth: number; riserCount: number; direction: 'up' | 'down'; stairType: StairType }
+export interface Column { id: string; position: Point; rotation: number; shape: 'round' | 'square'; diameter: number; height: number; color: string }
+export interface TextAnnotation { id: string; x: number; y: number; text: string; fontSize: number; color: string; rotation: number }
 export interface WallArt { id: string; wallId: string; position: number; width: number; height: number; bottomHeight: number; side: 'normal' | 'anti'; color: string; src?: string }
 export interface OpeningCatalogConfig { showDoors?: boolean; showWindows?: boolean; doorTypes?: readonly DoorType[]; windowTypes?: readonly WindowType[] }
 export type ObjectShape = 'rectangle' | 'circle';
@@ -43,11 +52,22 @@ export interface Project { id: string; name: string; description?: string; floor
 export type ProjectFileData = string | Project | Record<string, unknown>;
 export interface DataStore { save(project: Project): Promise<void>; load(id: string): Promise<Project | null>; list(): Promise<{ id: string; name: string; updatedAt: string }[]>; delete(id: string): Promise<void>; duplicate(id: string): Promise<Project | null>; saveThumbnail(id: string, dataUrl: string): void; getThumbnail(id: string): string | null }
 export interface FloorplanEditorHandle { getProject(): Project | null; loadProject(project: Project): void; updateFileData(data: ProjectFileData): void; getWallHeight(): number | null; setWallHeight(height: number): void; focus(): void; registerPattern(pattern: CustomPattern): void; removePattern(id: string): void; setRoomCatalogs(presets: readonly RoomPreset[], templates: readonly RoomTemplate[]): void; setOpeningCatalog(config: OpeningCatalogConfig): void; generateObjects(input: GenerateObjectsInput): GenerateObjectsResult; preGenerateObjectGrid(input: BatchGridPlacementInput): void; setTool(tool: Tool): void; addWalkthroughPoint(position: Point, name?: string, dwellTime?: number): WalkthroughPoint; setWalkthroughPoints(points: readonly WalkthroughPoint[], floorId?: string): void; updateWalkthroughPoint(id: string, updates: Partial<Omit<WalkthroughPoint, 'id'>>): void; insertWalkthroughPoint(afterPointId: string, position?: Point, name?: string, dwellTime?: number): WalkthroughPoint | null; normalizeCoordinates(floorId?: string): Point | null; copySelection(): Promise<boolean>; pasteSelection(offset?: Point): Promise<string[]>; save(): Promise<SaveEvent | null> }
-export interface FloorplanEditorModules { toolbar?: () => ReactNode; materialLibrary?: { title: string; content: ReactNode }; properties?: (selected: OptionsElement | null) => ReactNode }
+export interface FloorplanEditorModules { toolbar?: () => ReactNode; materialLibrary?: { title: string; content: ReactNode }; properties?: (selected: PropertiesSelection | null) => ReactNode | void }
 export type ThemePreference = 'light' | 'dark' | 'system';
 export interface FloorplanEditorProps { theme?: ThemePreference }
 export type OptionsElementKind = 'wall' | 'door' | 'window' | 'wallArt' | 'furniture' | 'room' | 'stair' | 'column' | 'textAnnotation' | 'walkthroughPoint';
 export type OptionsElement = Wall | Door | Window | WallArt | FurnitureItem | Room | Stair | Column | TextAnnotation | WalkthroughPoint;
+export type PropertiesSelection =
+  | (Wall & { kind: 'wall' })
+  | (Door & { kind: 'door' })
+  | (Window & { kind: 'window' })
+  | (WallArt & { kind: 'wallArt' })
+  | (FurnitureItem & { kind: 'furniture' })
+  | (Room & { kind: 'room' })
+  | (Stair & { kind: 'stair' })
+  | (Column & { kind: 'column' })
+  | (TextAnnotation & { kind: 'textAnnotation' })
+  | (WalkthroughPoint & { kind: 'walkthroughPoint' });
 export interface OptionsSelection { kind: OptionsElementKind; value: OptionsElement }
 export interface FloorplanEditorProps { project?: Project; initialFileData?: ProjectFileData; dataStore?: DataStore; autoSave?: boolean; height?: CSSProperties['height']; className?: string; style?: CSSProperties; modules?: FloorplanEditorModules; customObjects?: CustomPattern[]; customPatterns?: CustomPattern[]; roomPresets?: readonly RoomPreset[]; roomTemplates?: readonly RoomTemplate[]; openingCatalog?: OpeningCatalogConfig; onProjectChange?: (project: Project) => void; onObjectAdded?: (event: ObjectAddedEvent) => void; onWalkthroughPointAdded?: (event: WalkthroughPointAddedEvent) => void; onSave?: (event: SaveEvent) => void; onReady?: (handle: FloorplanEditorHandle) => void }
 export const FloorplanEditor: ForwardRefExoticComponent<FloorplanEditorProps & RefAttributes<FloorplanEditorHandle>>;

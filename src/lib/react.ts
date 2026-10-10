@@ -2,13 +2,14 @@ import './styles.css';
 import { Fragment, createElement, forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { mount, unmount } from 'svelte';
+import { fromStore, writable } from 'svelte/store';
 import SvelteFloorplanEditor from './components/editor/FloorplanEditor.svelte';
 import { createDefaultFloor, createDefaultProject } from './stores/project';
 import { localStore } from './services/datastore';
 import type { CSSProperties, ReactNode } from 'react';
 import { GenerateObjectsError } from './models/types';
 import { themePreference, type ThemePreference } from './stores/theme';
-import type { BatchGridPlacementInput } from './models/types';
+import type { BatchGridPlacementInput, Column, Door, FurnitureItem, Room, Stair, TextAnnotation, Wall, WallArt, Window } from './models/types';
 import type { CustomPattern, GenerateObjectsInput, GenerateObjectsResult, ObjectAddedEvent, OpeningCatalogConfig, OptionsContextSnapshot, OptionsElement, Point, Project, SaveEvent, WalkthroughPoint, WalkthroughPointAddedEvent } from './models/types';
 import type { Tool } from './stores/project';
 import type { RoomPreset } from './utils/roomPresets';
@@ -40,13 +41,25 @@ export interface FloorplanEditorHandle {
   save(): Promise<SaveEvent | null>;
 }
 
+export type PropertiesSelection =
+  | (Wall & { kind: 'wall' })
+  | (Door & { kind: 'door' })
+  | (Window & { kind: 'window' })
+  | (WallArt & { kind: 'wallArt' })
+  | (FurnitureItem & { kind: 'furniture' })
+  | (Room & { kind: 'room' })
+  | (Stair & { kind: 'stair' })
+  | (Column & { kind: 'column' })
+  | (TextAnnotation & { kind: 'textAnnotation' })
+  | (WalkthroughPoint & { kind: 'walkthroughPoint' });
+
 export interface FloorplanEditorModules {
   toolbar?: () => ReactNode;
   materialLibrary?: {
     title: string;
     content: ReactNode;
   };
-  properties?: (selected: OptionsElement | null) => ReactNode;
+  properties?: (selected: PropertiesSelection | null) => ReactNode | void;
 }
 
 export interface OptionsRenderContext extends OptionsContextSnapshot {
@@ -115,6 +128,13 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
   const patternsRef = useRef(effectiveObjects);
   const [moduleTargets, setModuleTargets] = useState<Partial<Record<'toolbarRight' | 'materialLibrary' | 'properties', HTMLElement>>>({});
   const [optionsSnapshot, setOptionsSnapshot] = useState<OptionsContextSnapshot | null>(null);
+  const [propertiesVisibility] = useState(() => fromStore(writable(false)));
+  const propertiesTarget = moduleTargets.properties;
+  const selection = optionsSnapshot?.selection;
+  const propertiesContent = propertiesTarget ? modules?.properties?.(
+    selection ? { ...selection.value, kind: selection.kind } as PropertiesSelection : null,selection
+  ) : null;
+  const hasCustomProperties = propertiesContent != null;
 
   projectRef.current = project;
   callbacksRef.current = { onProjectChange, onObjectAdded, onWalkthroughPointAdded, onSave, onReady };
@@ -170,7 +190,9 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
         openingCatalog,
         customMaterialTitle: modules?.materialLibrary?.title,
         theme,
-        hideDefaultOptions: !!modules?.properties,
+        get hideDefaultOptions() {
+          return propertiesVisibility.current;
+        },
         onOptionsContextChange(context: OptionsContextSnapshot | null) {
           if (active) setOptionsSnapshot(context);
         },
@@ -210,7 +232,11 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
       handleRef.current = null;
       void unmount(instance);
     };
-  }, [autoSave, dataStore, !!modules?.properties, !!modules?.materialLibrary]);
+  }, [autoSave, dataStore, propertiesVisibility, !!modules?.materialLibrary]);
+
+  useEffect(() => {
+    propertiesVisibility.current = hasCustomProperties;
+  }, [hasCustomProperties, propertiesVisibility]);
 
   useEffect(() => {
     if (theme) themePreference.set(theme);
@@ -241,8 +267,7 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
   if (toolbarTarget && modules?.toolbar) portals.push(createPortal(modules.toolbar(), toolbarTarget, 'toolbar'));
   const materialTarget = moduleTargets.materialLibrary;
   if (materialTarget && modules?.materialLibrary) portals.push(createPortal(modules.materialLibrary.content, materialTarget, 'material-library'));
-  const propertiesTarget = moduleTargets.properties;
-  if (propertiesTarget && modules?.properties) portals.push(createPortal(modules.properties(optionsSnapshot?.selection?.value ?? null), propertiesTarget, 'properties'));
+  if (propertiesTarget && propertiesContent != null) portals.push(createPortal(propertiesContent, propertiesTarget, 'properties'));
 
   return createElement(
     Fragment,
