@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
-  import type { BatchGridPlacementInput } from '$lib/models/types';
+  import type { BatchGridPlacementInput, FurnitureItem } from '$lib/models/types';
   import { preGenerateObjectGrid as startObjectGridPlacement } from '$lib/stores/project';
   import type { CustomPattern, GenerateObjectsInput, GenerateObjectsResult, ObjectAddedEvent, OpeningCatalogConfig, OptionsContextSnapshot, OptionsSelection, Point, Project, SaveEvent, WalkthroughPoint, WalkthroughPointAddedEvent } from '$lib/models/types';
   import type { RoomPreset } from '$lib/utils/roomPresets';
@@ -120,7 +120,10 @@
     ] as const;
     for (const [kind, values] of sources) {
       const value = values.find((item) => item.id === id);
-      if (value) return { kind, value } as OptionsSelection;
+      if (value) return {
+        kind, value,
+        ...(kind === 'furniture' ? { definition: $currentProject?.customPatterns?.find((item) => item.id === (value as FurnitureItem).catalogId) } : {})
+      } as OptionsSelection;
     }
     return null;
   }

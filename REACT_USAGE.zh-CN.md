@@ -261,6 +261,9 @@ export default function App() {
 
 ```ts
 interface DeviceInstanceInput {
+  [key: string]: unknown; // 可直接传顶层业务字段，保存到实例
+  ceilingMounted?: boolean; // 不填继承 definition；false 使用手动离地高度
+  groundHeight?: number; // 手动离地高度（cm），非负有限数值；不填继承 definition，再默认 0
   externalId?: string;
   floorId?: string;
   position: { x: number; y: number };
@@ -288,6 +291,56 @@ interface GeneratedObjectResult {
 ```
 
 批量操作会先校验全部数据。任意实例无效时抛出 `GenerateObjectsError`，整批数据不会部分写入。
+
+### 顶层业务字段与挂顶安装
+
+`CustomPattern`（包括 `customObjects`、`generateObjects({ definition, instances })` 的 `definition` 和数组格式的 `pattern`）支持直接添加顶层业务字段。实例输入也支持顶层业务字段，无需放进 `metadata` 容器。请使用可 JSON 序列化的数据：定义字段保存到 `project.customPatterns`，实例字段保存到 `floor.furniture`，导入、导出和属性回调均保留。
+
+```tsx
+const sensorDefinition = {
+  id: 'ceiling-sensor', name: '顶装传感器', width: 20, depth: 20,
+  height: 12, ceilingMounted: true, groundHeight: 80,
+  manufacturer: '厂商 A', productInfo: { model: 'S1' }
+};
+
+editorRef.current?.setWallHeight(300);
+editorRef.current?.generateObjects({
+  definition: sensorDefinition,
+  instances: [
+    { position: { x: 100, y: 120 }, externalId: 'sensor-01', assetCode: 'A001', scale: { z: 2 } },
+    { position: { x: 160, y: 120 }, assetCode: 'A002', ceilingMounted: false, groundHeight: 100 },
+    { position: { x: 220, y: 120 }, assetCode: 'A003', ceilingMounted: false }
+  ]
+});
+// 第一件 elevation = 300 - 12 * 2 = 276cm；关闭挂顶后恢复定义默认 80cm。
+// 第二件 elevation = 100cm（实例覆盖）；第三件 elevation = 80cm（继承定义）。
+
+// 放入 FloorplanEditor 的 modules 配置中：
+const modules = {
+  properties: (selected, attributes) => {
+    if (selected?.kind === 'furniture') {
+      console.log(selected.assetCode, selected.elevation);
+      console.log(attributes?.value, attributes?.definition?.manufacturer);
+    }
+    // 无返回内容，继续显示带挂顶开关的默认属性栏。
+  }
+} satisfies import('floorplan2d').FloorplanEditorModules;
+```
+
+`ceilingMounted` 的优先级为实例值、定义值、`false`。`groundHeight` 保存手动离地高度（厘米），优先级为实例值、定义值、`0`，必须是非负有限数值。默认属性栏为家具和自定义物件提供“离地面高度 (cm)”数字输入；挂顶时显示自动计算值并禁用输入，关闭挂顶后恢复此前手动值。重置为默认值会清除 `ceilingMounted` 和 `groundHeight` 的实例覆盖并重新继承定义。`elevation` 始终是物件**底部实际离地高度**的计算结果：
+
+```ts
+const ceilingMounted = instance.ceilingMounted ?? definition?.ceilingMounted ?? false;
+const groundHeight = instance.groundHeight ?? definition?.groundHeight ?? 0;
+const effectiveHeight = instance.height ?? definition?.height ?? 0;
+const elevation = ceilingMounted ? project.wallHeight - effectiveHeight * instance.scale.z : groundHeight;
+```
+
+天花板高度使用项目统一的 `wallHeight`。缺省物件高度沿用现有的 `0cm`，生成时缺省 `scale.z` 为 `1`；挂顶物件高于天花板时允许负 `elevation`，不截断公式。手动离地高度不乘以缩放系数，挂顶期间仍保留。`groundHeight` 的定义默认及实例覆盖随复制粘贴、导入导出和属性回调保留，`elevation` 输出当前有效高度，不改变 XY 坐标，也不增加编辑器 3D 渲染。
+
+`setWallHeight()`、属性栏修改实例高度/缩放/挂顶状态、`registerPattern()` 更新定义、`loadProject()` / `updateFileData()` 导入工程，以及撤销/重做都会刷新高度。`getProject()`、保存和导出快照也会重新计算，忽略文件或输入中旧的 `elevation`。继承定义的实例不会被写死为创建时的挂顶状态。
+
+`preGenerateObjectGrid()` 同样支持 `ceilingMounted`、`groundHeight`、`height` 和顶层业务字段，落点生成的每件实例都会保留。`pattern`、`floorId` 及阵列控制参数 `rows`、`columns`、`rowGap`、`columnGap` 不写入实例；`id` / `catalogId` 由编辑器生成，`position` 使用实际生成坐标，`scale`、`rotation`、`label` 按已有规则规范化。`externalId` 会同时保留在实例和生成结果中。自定义业务字段请避开这些保留名称及 `elevation`。
 
 ## 7. 物件新增回调
 
@@ -416,7 +469,7 @@ const event = await editorRef.current?.save();
 
 - 返回自定义内容时，使用该内容替换默认属性栏。
 - 无返回值（未写 `return` 或直接 `return;`），或返回 `undefined`、`null` 时，使用默认属性栏；未配置该回调时也使用默认属性栏。
-- 回调类型为 `(selected: PropertiesSelection | null) => ReactNode | void`，支持根据选中对象决定是否自定义。切换默认与自定义属性栏不会重新初始化编辑器，也不会重置当前选中状态。
+- 回调类型为 `(selected: PropertiesSelection | null, attributes: OptionsSelection | null) => ReactNode | void`，支持根据选中对象决定是否自定义。第二个参数保留 `{ kind, value }` 结构，并可包含 `definition?: CustomPattern`：`attributes.kind` 表示选中元素的种类；`attributes.value` 包含工程中的实例属性、顶层业务字段和最新计算的 `elevation`；`attributes.definition` 返回自定义物件的完整定义（包括定义上的顶层业务字段）。两层字段独立保存，不会把定义上的同名字段覆盖到实例。除派生的 `elevation` 外，不补齐未设置的可选字段；例如有效挂顶状态为 `selected.ceilingMounted ?? attributes?.definition?.ceilingMounted ?? false`。未选中时两个参数均为 `null`；原有单参数回调仍可使用。切换默认与自定义属性栏不会重新初始化编辑器，也不会重置当前选中状态。
 
 `PropertiesSelection` 是从 `floorplan2d` 导出的判别联合类型（可通过 `import type { PropertiesSelection } from 'floorplan2d'` 引入）。判断 `selected.kind` 后，TypeScript 会将对象收窄为对应模型与种类标识的交叉类型：
 
@@ -438,14 +491,14 @@ const event = await editorRef.current?.save();
 ```tsx
 <FloorplanEditor
   modules={{
-    properties: (selected) => {
+    properties: (selected, attributes) => {
       if (selected?.kind === 'furniture') {
         return (
           <div className="w-72 p-4">
             <h3>家具属性</h3>
             <p>对象 ID：{selected.id}</p>
             <p>目录 ID：{selected.catalogId}</p>
-            <pre>{JSON.stringify(selected, null, 2)}</pre>
+            <pre>{JSON.stringify(attributes, null, 2)}</pre>
           </div>
         );
       }
@@ -624,6 +677,7 @@ interface FloorplanEditorHandle {
     templates: readonly RoomTemplate[]
   ): void;
   generateObjects(input: GenerateObjectsInput): GenerateObjectsResult;
+  preGenerateObjectGrid(input: BatchGridPlacementInput): void;
   setTool(tool: Tool): void;
   addWalkthroughPoint(position: Point, name?: string, dwellTime?: number): WalkthroughPoint;
   setWalkthroughPoints(

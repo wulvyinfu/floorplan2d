@@ -1,8 +1,10 @@
 <script lang="ts">
   import { resolveAssetUrl } from '$lib/runtime';
+  import { currentProject } from '$lib/stores/project';
   import { activeFloor, selectedElementId, selectedRoomId, updateWall, updateDoor, updateWindow, updateWallArt, updateRoom, updateFurniture, detectedRoomsStore, updateStair, updateColumn, updateBackgroundImage, setBackgroundImage, calibrationMode, calibrationPoints, updateTextAnnotation, toggleFurnitureLock, updateWalkthroughPoint, insertWalkthroughPoint } from '$lib/stores/project';
   import { floorMaterials, wallColors } from '$lib/utils/materials';
   import { getCatalogItem } from '$lib/utils/furnitureCatalog';
+  import { getFurniturePlacement } from '$lib/utils/furniturePlacement';
   import { projectSettings, formatLength, formatArea } from '$lib/stores/settings';
   import type { Floor, Wall, Door, Window as Win, Room, FurnitureItem, Stair, Column, RoomCategory, TextAnnotation } from '$lib/models/types';
 
@@ -55,6 +57,11 @@
   let selectedWindow = $derived(floor?.windows?.find(w => w.id === selId) ?? null);
   let selectedWallArt = $derived(floor?.wallArt?.find(item => item.id === selId) ?? null);
   let selectedFurniture = $derived(floor?.furniture?.find(f => f.id === selId) ?? null);
+  let furniturePlacement = $derived(selectedFurniture ? getFurniturePlacement(
+    selectedFurniture,
+    $currentProject?.customPatterns?.find((definition) => definition.id === selectedFurniture.catalogId),
+    $currentProject?.wallHeight ?? 280
+  ) : null);
   let selectedStair = $derived(floor?.stairs?.find(s => s.id === selId) ?? null);
   let selectedColumn = $derived(floor?.columns?.find(c => c.id === selId) ?? null);
   let selectedTextAnnotation = $derived(floor?.textAnnotations?.find(t => t.id === selId) ?? null);
@@ -234,6 +241,14 @@
     const v = Math.max(1, inputToCm(Number((e.target as HTMLInputElement).value)) || 1);
     updateFurniture(selectedFurniture.id, { height: v });
   }
+  function onFurnitureGroundHeight(e: Event) {
+    if (!selectedFurniture || furniturePlacement?.ceilingMounted) return;
+    const input = e.target as HTMLInputElement;
+    const value = Number(input.value);
+    const groundHeight = Number.isFinite(value) ? Math.max(0, value) : furniturePlacement?.groundHeight ?? 0;
+    input.value = String(groundHeight);
+    updateFurniture(selectedFurniture.id, { groundHeight });
+  }
   function onFurnitureMaterial(e: Event) {
     if (!selectedFurniture) return;
     updateFurniture(selectedFurniture.id, { material: (e.target as HTMLSelectElement).value });
@@ -244,7 +259,7 @@
   }
   function resetFurnitureDefaults() {
     if (!selectedFurniture) return;
-    updateFurniture(selectedFurniture.id, { color: undefined, width: undefined, depth: undefined, height: undefined, material: undefined });
+    updateFurniture(selectedFurniture.id, { color: undefined, width: undefined, depth: undefined, height: undefined, material: undefined, ceilingMounted: undefined, groundHeight: undefined });
   }
 
   // Door distance handlers
@@ -654,6 +669,28 @@
       >{selectedFurniture.locked ? '🔒 已锁定' : '🔓'}</button>
     </h3>
     <div class="space-y-3">
+      {#if $currentProject?.customPatterns?.some((definition) => definition.id === selectedFurniture.catalogId)}
+        <label class="flex items-center gap-2 text-sm text-gray-600">
+          <input
+            type="checkbox"
+            checked={furniturePlacement?.ceilingMounted ?? false}
+            onchange={(e) => { if (selectedFurniture) updateFurniture(selectedFurniture.id, { ceilingMounted: e.currentTarget.checked }); }}
+          />
+          挂顶安装
+        </label>
+      {/if}
+      <label class="block">
+        <span class="text-xs text-gray-500">离地面高度 (cm)</span>
+        <input
+          type="number"
+          min={furniturePlacement?.ceilingMounted ? undefined : 0}
+          step="any"
+          value={furniturePlacement?.elevation ?? 0}
+          disabled={furniturePlacement?.ceilingMounted ?? false}
+          oninput={onFurnitureGroundHeight}
+          class="w-full px-2 py-1 border border-gray-200 rounded text-sm disabled:bg-gray-100 disabled:text-gray-500"
+        />
+      </label>
       <!-- Color -->
       <div>
         <div class="flex items-center gap-1 mb-2">

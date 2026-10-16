@@ -10,7 +10,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { GenerateObjectsError } from './models/types';
 import { themePreference, type ThemePreference } from './stores/theme';
 import type { BatchGridPlacementInput, Column, Door, FurnitureItem, Room, Stair, TextAnnotation, Wall, WallArt, Window } from './models/types';
-import type { CustomPattern, GenerateObjectsInput, GenerateObjectsResult, ObjectAddedEvent, OpeningCatalogConfig, OptionsContextSnapshot, OptionsElement, Point, Project, SaveEvent, WalkthroughPoint, WalkthroughPointAddedEvent } from './models/types';
+import type { CustomPattern, GenerateObjectsInput, GenerateObjectsResult, ObjectAddedEvent, OpeningCatalogConfig, OptionsContextSnapshot, OptionsElement, OptionsSelection, Point, Project, SaveEvent, WalkthroughPoint, WalkthroughPointAddedEvent } from './models/types';
 import type { Tool } from './stores/project';
 import type { RoomPreset } from './utils/roomPresets';
 import type { RoomTemplate } from './utils/roomTemplates';
@@ -59,7 +59,7 @@ export interface FloorplanEditorModules {
     title: string;
     content: ReactNode;
   };
-  properties?: (selected: PropertiesSelection | null) => ReactNode | void;
+  properties?: (selected: PropertiesSelection | null, attributes: OptionsSelection | null) => ReactNode | void;
 }
 
 export interface OptionsRenderContext extends OptionsContextSnapshot {
@@ -132,7 +132,8 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
   const propertiesTarget = moduleTargets.properties;
   const selection = optionsSnapshot?.selection;
   const propertiesContent = propertiesTarget ? modules?.properties?.(
-    selection ? { ...selection.value, kind: selection.kind } as PropertiesSelection : null,selection
+    selection ? { ...selection.value, kind: selection.kind } as PropertiesSelection : null,
+    selection ?? null
   ) : null;
   const hasCustomProperties = propertiesContent != null;
 

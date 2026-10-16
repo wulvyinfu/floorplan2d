@@ -2074,9 +2074,8 @@
       const td = c.rows * c.pattern.depth + (c.rows - 1) * c.rowGap;
       const items = [];
       for (let r = 0; r < c.rows; r++) for (let col = 0; col < c.columns; col++) items.push({
-        pattern: c.pattern, floorId: c.floorId,
-        position: { x: center.x - tw / 2 + c.pattern.width / 2 + col * (c.pattern.width + c.columnGap), y: center.y - td / 2 + c.pattern.depth / 2 + r * (c.pattern.depth + c.rowGap) },
-        rotation: c.rotation, scale: c.scale, color: c.color, material: c.material, locked: c.locked
+        ...c,
+        position: { x: center.x - tw / 2 + c.pattern.width / 2 + col * (c.pattern.width + c.columnGap), y: center.y - td / 2 + c.pattern.depth / 2 + r * (c.pattern.depth + c.rowGap) }
       });
       generateObjects(items);
       cancelObjectGridPlacement();

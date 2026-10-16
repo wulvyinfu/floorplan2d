@@ -1,5 +1,6 @@
 import type { Floor, Project } from '$lib/models/types';
 import { mergeCustomPatterns } from '$lib/utils/customPatterns';
+import { refreshFurnitureElevations } from '$lib/utils/furniturePlacement';
 
 export type ProjectFileData = string | Project | Record<string, unknown>;
 
@@ -39,7 +40,7 @@ export function createProjectDataSnapshot(project: Project): Project {
   snapshot.floors = snapshot.floors.map((floor) => ({ ...floor, ...getFloorDimensions(floor) }));
   snapshot.floors.forEach((floor) => floor.walls.forEach((wall) => { wall.height = wallHeight; }));
   snapshot.customPatterns = mergeCustomPatterns(snapshot.customPatterns);
-  return snapshot;
+  return refreshFurnitureElevations(snapshot);
 }
 
 function normalizeFloor(value: unknown, index: number): Floor {
@@ -92,7 +93,7 @@ export function parseProjectFileData(input: ProjectFileData): Project {
   const activeFloorId = typeof source.activeFloorId === 'string' && floors.some((floor) => floor.id === source.activeFloorId)
     ? source.activeFloorId
     : floors[0].id;
-  return {
+  return refreshFurnitureElevations({
     ...cloneValue(source),
     id: source.id,
     name: source.name,
@@ -102,5 +103,5 @@ export function parseProjectFileData(input: ProjectFileData): Project {
     updatedAt: parseDate(source.updatedAt, 'updatedAt'),
     wallHeight,
     customPatterns: mergeCustomPatterns(Array.isArray(source.customPatterns) ? cloneValue(source.customPatterns) : [])
-  } as Project;
+  } as Project);
 }

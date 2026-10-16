@@ -1,5 +1,6 @@
 import { writable, derived, get } from 'svelte/store';
 import { GenerateObjectsError } from '$lib/models/types';
+import { refreshFurnitureElevations, validateGroundHeight } from '$lib/utils/furniturePlacement';
 import type { BatchGridPlacementInput } from '$lib/models/types';
 import type { Project, Floor, Wall, Door, Window as Win, WallArt, FurnitureItem, Point, Stair, Column, BackgroundImage, GuideLine, ElementGroup, CustomPattern, ExternalObjectInput, GenerateObjectsInput, GenerateObjectsResult, WalkthroughPoint, ClipboardElement, ClipboardPayload } from '$lib/models/types';
 
@@ -27,7 +28,19 @@ export function createDefaultProject(name = '未命名项目', customPatterns: C
   };
 }
 
-export const currentProject = writable<Project | null>(null);
+const projectStore = writable<Project | null>(null);
+export const currentProject = {
+  subscribe: projectStore.subscribe,
+  set(project: Project | null) {
+    projectStore.set(project ? refreshFurnitureElevations(project) : null);
+  },
+  update(updater: (project: Project | null) => Project | null) {
+    projectStore.update((project) => {
+      const next = updater(project);
+      return next ? refreshFurnitureElevations(next) : null;
+    });
+  }
+};
 
 export const activeFloor = derived(currentProject, ($p) => {
   if (!$p) return null;
@@ -441,9 +454,9 @@ export function addFurniture(catalogId: string, position: Point): string {
 export function generateObjects(input: GenerateObjectsInput): GenerateObjectsResult {
   const project = get(currentProject);
   if (!project) throw new GenerateObjectsError(['当前没有已加载的项目']);
-  const items: readonly ExternalObjectInput[] = Array.isArray(input)
-    ? input as readonly ExternalObjectInput[]
-    : input.instances.map((instance) => ({ ...instance, pattern: input.definition }));
+  const items: readonly ExternalObjectInput[] = 'definition' in input
+    ? input.instances.map((instance) => ({ ...instance, pattern: input.definition }))
+    : input;
   if (items.length === 0) throw new GenerateObjectsError(['批量物件数据不能为空']);
 
   const issues: string[] = [];
@@ -462,6 +475,15 @@ export function generateObjects(input: GenerateObjectsInput): GenerateObjectsRes
     if (pattern?.shape && pattern.shape !== 'rectangle' && pattern.shape !== 'circle') issues.push(`${path}的形状仅支持 rectangle 或 circle`);
     if (!Number.isFinite(item.position?.x) || !Number.isFinite(item.position?.y)) issues.push(`${path}的坐标无效`);
     if (item.rotation !== undefined && !Number.isFinite(item.rotation)) issues.push(`${path}的旋转角度无效`);
+    for (const value of [item.height, pattern?.height]) {
+      if (value != null && (!Number.isFinite(value) || value < 0)) issues.push(`${path}的高度必须是非负有限数值`);
+    }
+    for (const value of [item.groundHeight, pattern?.groundHeight]) {
+      try { validateGroundHeight(value); } catch { issues.push(`${path}的离地面高度必须是非负有限数值`); }
+    }
+    for (const value of [item.ceilingMounted, pattern?.ceilingMounted]) {
+      if (value != null && typeof value !== 'boolean') issues.push(`${path}的 ceilingMounted 必须是布尔值`);
+    }
     const label = typeof item.label === 'string' ? { text: item.label } : item.label;
     if (label && !label.text.trim()) issues.push(`${path}的标签文本不能为空`);
     if (label?.fontSize !== undefined && (!Number.isFinite(label.fontSize) || label.fontSize <= 0)) issues.push(`${path}的标签字号必须大于 0`);
@@ -496,7 +518,9 @@ export function generateObjects(input: GenerateObjectsInput): GenerateObjectsRes
   items.forEach((item, index) => {
     const result = generated[index];
     const list = additions.get(result.floorId) ?? [];
+    const { pattern, floorId, rows, columns, rowGap, columnGap, ...instance } = item;
     list.push({
+      ...instance,
       id: result.objectId,
       catalogId: result.catalogId,
       position: { ...item.position },
@@ -529,6 +553,9 @@ export const pendingBatchGridPlacement = writable<BatchGridPlacementInput | null
 /** Start an interactive rectangular batch placement completed by the next canvas click. */
 export function preGenerateObjectGrid(input: BatchGridPlacementInput): void {
   const issues: string[] = [];
+  for (const value of [input.groundHeight, input.pattern?.groundHeight]) {
+    try { validateGroundHeight(value); } catch { issues.push('离地面高度必须是非负有限数值'); }
+  }
   if (!input.pattern?.id?.trim()) issues.push('物件类型不能为空');
   if (!Number.isInteger(input.rows) || input.rows < 1) issues.push('行数必须是大于 0 的整数');
   if (!Number.isInteger(input.columns) || input.columns < 1) issues.push('列数必须是大于 0 的整数');
@@ -825,6 +852,7 @@ export function updateWallArt(id: string, updates: Partial<WallArt>) {
 }
 
 export function updateFurniture(id: string, updates: Partial<FurnitureItem>) {
+  validateGroundHeight(updates.groundHeight);
   mutate((f) => {
     const fi = f.furniture.find((fi) => fi.id === id);
     if (fi) Object.assign(fi, updates);

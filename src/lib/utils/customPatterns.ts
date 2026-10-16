@@ -1,6 +1,7 @@
 import { get } from 'svelte/store';
 import { currentProject } from '$lib/stores/project';
 import type { CustomPattern } from '$lib/models/types';
+import { validateGroundHeight } from '$lib/utils/furniturePlacement';
 
 export type ResolvedFurnitureDef = CustomPattern & { category: string; color: string; height: number; snapToWall: boolean; icon: string; pattern: true };
 
@@ -13,6 +14,9 @@ export function normalizePattern(pattern: CustomPattern): CustomPattern {
   //   throw new Error('自定义图案仅支持图片 data URL 或 HTTP(S) 地址');
   // }
   if (pattern.snapToWall != null && typeof pattern.snapToWall !== 'boolean') throw new Error('自定义图案 snapToWall 必须是布尔值');
+  if (pattern.ceilingMounted != null && typeof pattern.ceilingMounted !== 'boolean') throw new Error('自定义图案 ceilingMounted 必须是布尔值');
+  if (pattern.height != null && (!Number.isFinite(pattern.height) || pattern.height < 0)) throw new Error('自定义图案高度必须是非负有限数值');
+  validateGroundHeight(pattern.groundHeight);
   return { ...pattern, id: pattern.id.trim(), name: pattern.name.trim(), category: pattern.category?.trim() || '自定义物件', shape: pattern.shape ?? 'rectangle', snapToWall: pattern.snapToWall ?? true };
 }
 

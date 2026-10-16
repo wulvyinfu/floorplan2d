@@ -80,6 +80,13 @@ export interface OpeningCatalogConfig {
 }
 
 export interface FurnitureItem {
+  [key: string]: unknown;
+  /** Instance override; undefined inherits the definition's mounting mode. */
+  ceilingMounted?: boolean;
+  /** Manual bottom height in cm; undefined inherits the definition, then 0. */
+  groundHeight?: number;
+  /** Derived bottom elevation in cm; uses groundHeight or ceiling placement. */
+  elevation?: number;
   id: string;
   catalogId: string;
   position: Point;
@@ -106,6 +113,9 @@ export interface ObjectLabel {
 }
 
 export interface CustomPattern {
+  [key: string]: unknown;
+  ceilingMounted?: boolean;
+  groundHeight?: number; // Default manual bottom height in cm
   id: string;
   name: string;
   category?: string;
@@ -119,6 +129,9 @@ export interface CustomPattern {
 }
 
 export interface ExternalObjectInput {
+  [key: string]: unknown;
+  ceilingMounted?: boolean;
+  groundHeight?: number;
   externalId?: string;
   floorId?: string;
   pattern: CustomPattern;
@@ -135,6 +148,9 @@ export interface ExternalObjectInput {
 }
 
 export interface DeviceInstanceInput {
+  [key: string]: unknown;
+  ceilingMounted?: boolean;
+  groundHeight?: number;
   externalId?: string;
   floorId?: string;
   position: Point;
@@ -157,6 +173,13 @@ export interface DeviceBatchInput {
 export type GenerateObjectsInput = readonly ExternalObjectInput[] | DeviceBatchInput;
 
 export interface BatchGridPlacementInput {
+  [key: string]: unknown;
+  ceilingMounted?: boolean;
+  groundHeight?: number;
+  width?: number;
+  depth?: number;
+  height?: number;
+  label?: string | ObjectLabel;
   pattern: CustomPattern;
   rows: number;
   columns: number;
@@ -207,6 +230,8 @@ export type OptionsElement = Wall | Door | Window | WallArt | FurnitureItem | Ro
 export interface OptionsSelection {
   kind: OptionsElementKind;
   value: OptionsElement;
+  /** Complete custom object definition, including external business fields. */
+  definition?: CustomPattern;
 }
 
 export interface OptionsContextSnapshot {
