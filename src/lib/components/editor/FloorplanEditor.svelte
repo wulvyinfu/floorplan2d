@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
-  import type { BatchGridPlacementInput, FurnitureItem } from '$lib/models/types';
+  import type { ElementPropertiesUpdates, BatchGridPlacementInput, FurnitureItem } from '$lib/models/types';
   import { preGenerateObjectGrid as startObjectGridPlacement } from '$lib/stores/project';
   import type { CustomPattern, GenerateObjectsInput, GenerateObjectsResult, ObjectAddedEvent, OpeningCatalogConfig, OptionsContextSnapshot, OptionsSelection, Point, Project, SaveEvent, WalkthroughPoint, WalkthroughPointAddedEvent } from '$lib/models/types';
   import type { RoomPreset } from '$lib/utils/roomPresets';
@@ -12,7 +12,7 @@
   import { resolvedTheme, themePreference, type ThemePreference } from '$lib/stores/theme';
   import { manualSave } from '$lib/stores/saveStatus';
   import { activeFloor, copySelectedElements, parseElementClipboard, pasteCopiedElements, selectedElementId, selectedElementIds, selectedRoomId, serializeElementClipboard } from '$lib/stores/project';
-  import { addWalkthroughPoint as addProjectWalkthroughPoint, currentProject, createDefaultProject, generateObjects as generateProjectObjects, insertWalkthroughPoint as insertProjectWalkthroughPoint, normalizeCoordinates as normalizeProjectCoordinates, selectedTool, setWallHeight as setProjectWallHeight, setWalkthroughPoints as setProjectWalkthroughPoints, updateWalkthroughPoint as updateProjectWalkthroughPoint } from '$lib/stores/project';
+  import { updateElementProperties as updateProjectElementProperties, addWalkthroughPoint as addProjectWalkthroughPoint, currentProject, createDefaultProject, generateObjects as generateProjectObjects, insertWalkthroughPoint as insertProjectWalkthroughPoint, normalizeCoordinates as normalizeProjectCoordinates, selectedTool, setWallHeight as setProjectWallHeight, setWalkthroughPoints as setProjectWalkthroughPoints, updateWalkthroughPoint as updateProjectWalkthroughPoint } from '$lib/stores/project';
   import type { Tool } from '$lib/stores/project';
   import { mergeCustomPatterns, registerCustomPattern, removeCustomPattern, setCustomPatterns } from '$lib/utils/customPatterns';
   import TopBar from '$lib/components/toolbar/TopBar.svelte';
@@ -44,6 +44,7 @@
     setTool(tool: Tool): void;
     addWalkthroughPoint(position: Point, name?: string, dwellTime?: number): WalkthroughPoint;
     setWalkthroughPoints(points: readonly WalkthroughPoint[], floorId?: string): void;
+    updateElementProperties(id: string, updates: ElementPropertiesUpdates): void;
     updateWalkthroughPoint(id: string, updates: Partial<Omit<WalkthroughPoint, 'id'>>): void;
     insertWalkthroughPoint(afterPointId: string, position?: Point, name?: string, dwellTime?: number): WalkthroughPoint | null;
     normalizeCoordinates(floorId?: string): Point | null;
@@ -243,6 +244,10 @@
     }
   }
 
+  export function updateElementProperties(id: string, updates: ElementPropertiesUpdates): void {
+    updateProjectElementProperties(id, updates);
+  }
+
   export function updateWalkthroughPoint(id: string, updates: Partial<Omit<WalkthroughPoint, 'id'>>) {
     updateProjectWalkthroughPoint(id, updates);
   }
@@ -369,7 +374,7 @@
       }
     });
 
-    onReady?.({ getProject, loadProject, updateFileData, getWallHeight, setWallHeight, focus, registerPattern, removePattern, setRoomCatalogs, setOpeningCatalog, generateObjects, preGenerateObjectGrid, setTool, addWalkthroughPoint, setWalkthroughPoints, updateWalkthroughPoint, insertWalkthroughPoint, normalizeCoordinates, copySelection, pasteSelection, save });
+    onReady?.({ getProject, loadProject, updateFileData, getWallHeight, setWallHeight, focus, registerPattern, removePattern, setRoomCatalogs, setOpeningCatalog, generateObjects, preGenerateObjectGrid, setTool, addWalkthroughPoint, setWalkthroughPoints, updateElementProperties, updateWalkthroughPoint, insertWalkthroughPoint, normalizeCoordinates, copySelection, pasteSelection, save });
     root.addEventListener('keydown', handleKeydown);
 
     return () => {

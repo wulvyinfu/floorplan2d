@@ -227,6 +227,20 @@ export interface ElementGroup {
 
 export type OptionsElementKind = 'wall' | 'door' | 'window' | 'wallArt' | 'furniture' | 'room' | 'stair' | 'column' | 'textAnnotation' | 'walkthroughPoint';
 export type OptionsElement = Wall | Door | Window | WallArt | FurnitureItem | Room | Stair | Column | TextAnnotation | WalkthroughPoint;
+export type ElementPropertiesUpdates = Record<string, unknown> & {
+  id?: never;
+  catalogId?: never;
+  wallId?: never;
+  walls?: never;
+  kind?: never;
+  type?: never;
+  stairType?: never;
+  shape?: never;
+  elevation?: never;
+  groundHeight?: number;
+  ceilingMounted?: boolean;
+};
+
 export interface OptionsSelection {
   kind: OptionsElementKind;
   value: OptionsElement;

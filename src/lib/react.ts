@@ -9,7 +9,7 @@ import { localStore } from './services/datastore';
 import type { CSSProperties, ReactNode } from 'react';
 import { GenerateObjectsError } from './models/types';
 import { themePreference, type ThemePreference } from './stores/theme';
-import type { BatchGridPlacementInput, Column, Door, FurnitureItem, Room, Stair, TextAnnotation, Wall, WallArt, Window } from './models/types';
+import type { ElementPropertiesUpdates, BatchGridPlacementInput, Column, Door, FurnitureItem, Room, Stair, TextAnnotation, Wall, WallArt, Window } from './models/types';
 import type { CustomPattern, GenerateObjectsInput, GenerateObjectsResult, ObjectAddedEvent, OpeningCatalogConfig, OptionsContextSnapshot, OptionsElement, OptionsSelection, Point, Project, SaveEvent, WalkthroughPoint, WalkthroughPointAddedEvent } from './models/types';
 import type { Tool } from './stores/project';
 import type { RoomPreset } from './utils/roomPresets';
@@ -33,6 +33,7 @@ export interface FloorplanEditorHandle {
   setTool(tool: Tool): void;
   addWalkthroughPoint(position: Point, name?: string, dwellTime?: number): WalkthroughPoint;
   setWalkthroughPoints(points: readonly WalkthroughPoint[], floorId?: string): void;
+  updateElementProperties(id: string, updates: ElementPropertiesUpdates): void;
   updateWalkthroughPoint(id: string, updates: Partial<Omit<WalkthroughPoint, 'id'>>): void;
   insertWalkthroughPoint(afterPointId: string, position?: Point, name?: string, dwellTime?: number): WalkthroughPoint | null;
   normalizeCoordinates(floorId?: string): Point | null;
@@ -166,6 +167,7 @@ export const FloorplanEditor = forwardRef<FloorplanEditorHandle, FloorplanEditor
       return handleRef.current.addWalkthroughPoint(position, name, dwellTime);
     },
     setWalkthroughPoints: (points, floorId) => handleRef.current?.setWalkthroughPoints(points, floorId),
+    updateElementProperties: (id, updates) => handleRef.current?.updateElementProperties(id, updates),
     updateWalkthroughPoint: (id, updates) => handleRef.current?.updateWalkthroughPoint(id, updates),
     insertWalkthroughPoint: (afterPointId, position, name, dwellTime) => handleRef.current?.insertWalkthroughPoint(afterPointId, position, name, dwellTime) ?? null,
     normalizeCoordinates: (floorId) => handleRef.current?.normalizeCoordinates(floorId) ?? null,

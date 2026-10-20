@@ -338,9 +338,50 @@ const elevation = ceilingMounted ? project.wallHeight - effectiveHeight * instan
 
 天花板高度使用项目统一的 `wallHeight`。缺省物件高度沿用现有的 `0cm`，生成时缺省 `scale.z` 为 `1`；挂顶物件高于天花板时允许负 `elevation`，不截断公式。手动离地高度不乘以缩放系数，挂顶期间仍保留。`groundHeight` 的定义默认及实例覆盖随复制粘贴、导入导出和属性回调保留，`elevation` 输出当前有效高度，不改变 XY 坐标，也不增加编辑器 3D 渲染。
 
-`setWallHeight()`、属性栏修改实例高度/缩放/挂顶状态、`registerPattern()` 更新定义、`loadProject()` / `updateFileData()` 导入工程，以及撤销/重做都会刷新高度。`getProject()`、保存和导出快照也会重新计算，忽略文件或输入中旧的 `elevation`。继承定义的实例不会被写死为创建时的挂顶状态。
+`updateElementProperties()`、`setWallHeight()`、属性栏修改实例高度/缩放/挂顶状态、`registerPattern()` 更新定义、`loadProject()` / `updateFileData()` 导入工程，以及撤销/重做都会刷新高度。`getProject()`、保存和导出快照也会重新计算，忽略文件或输入中旧的 `elevation`。继承定义的实例不会被写死为创建时的挂顶状态。
 
 `preGenerateObjectGrid()` 同样支持 `ceilingMounted`、`groundHeight`、`height` 和顶层业务字段，落点生成的每件实例都会保留。`pattern`、`floorId` 及阵列控制参数 `rows`、`columns`、`rowGap`、`columnGap` 不写入实例；`id` / `catalogId` 由编辑器生成，`position` 使用实际生成坐标，`scale`、`rotation`、`label` 按已有规则规范化。`externalId` 会同时保留在实例和生成结果中。自定义业务字段请避开这些保留名称及 `elevation`。
+
+### 修改已有节点的实例属性
+
+```ts
+updateElementProperties(id: string, updates: ElementPropertiesUpdates): void;
+```
+
+通过 `editorRef.current` 或 `onReady` 返回的 handle 调用。方法在**当前楼层**按 ID 查找已有的 wall、door、window、wallArt、furniture、room、stair、column、textAnnotation 或 walkthroughPoint，支持标准字段和任意顶层业务字段。自定义家具的覆盖值写入实例自身，不修改 `customPatterns` 中的定义，也不修改引用同一定义的其他实例。
+
+```tsx
+const editor = editorRef.current;
+if (editor) {
+  const { generated } = editor.generateObjects({
+    definition: {
+      id: 'shared-sensor', name: '传感器', width: 20, depth: 20, height: 12,
+      manufacturer: '厂商 A', productInfo: { model: 'S1', warranty: 2 }
+    },
+    instances: [
+      { position: { x: 100, y: 120 }, assetCode: 'A001' },
+      { position: { x: 160, y: 120 }, assetCode: 'A002' }
+    ]
+  });
+  editor.updateElementProperties(generated[0].objectId, {
+    assetCode: 'A001-updated',
+    productInfo: { model: 'S2' },
+    ceilingMounted: false,
+    groundHeight: 100
+  });
+  // 第一件实例保存 S2 和 100cm；第二件仍为 A002，继续使用定义的 S1。
+  // 定义仍保留 productInfo: { model: 'S1', warranty: 2 }。
+  const snapshot = editor.getProject();
+  console.log(snapshot?.floors.find(f => f.id === snapshot.activeFloorId)?.furniture);
+  editor.save();
+}
+```
+
+更新按顶层字段浅层替换，**不会深层合并**：上例实例的 `productInfo` 只有 `model`，不会继承定义的 `warranty`。传入的嵌套对象和数组会深拷贝，之后修改输入对象不会改变实例；多次使用同一输入更新不同实例也不会共享嵌套引用。业务值请使用可 JSON 序列化的数据，以保证工程文件和撤销快照可以保存。
+
+`id`、`catalogId`、`wallId`、`walls`、`kind`、`type`、`stairType`、`shape` 为受保护身份或关联字段，`elevation` 为派生字段，类型禁止直接传入；运行时传入这些键或 `__proto__`、`prototype`、`constructor` 会抛错且不会部分更新。`groundHeight` 必须为非负有限数值。其他标准复杂字段按完整值传入，例如 `scale: { x: 1, y: 1, z: 2 }`。
+
+更新走现有撤销/重做和自动保存机制，并重新计算安装高度。选中节点更新后，`modules.properties(selected, attributes)` 会刷新：`attributes.value` 和 `selected` 包含实例字段，`attributes.definition` 保留原定义。`onProjectChange`、`getProject()`、保存回调及工程导出均保留实例覆盖，重新导入仍可读取。合法更新找不到 ID 时与现有更新方法一致：不抛错、不修改节点，但仍触发现有更新通知和撤销快照机制。
 
 ## 7. 物件新增回调
 
@@ -508,7 +549,7 @@ const event = await editorRef.current?.save();
 />
 ```
 
-自定义属性组件需要通过编辑器已有的数据更新 API 或业务状态管理完成属性修改。
+自定义属性组件可调用 `editorRef.current?.updateElementProperties(selected.id, updates)` 修改实例属性；更新后属性回调会收到最新实例值。
 
 ### 物件矩阵预生成与鼠标放置
 
@@ -684,6 +725,7 @@ interface FloorplanEditorHandle {
     points: readonly WalkthroughPoint[],
     floorId?: string
   ): void;
+  updateElementProperties(id: string, updates: ElementPropertiesUpdates): void;
   updateWalkthroughPoint(
     id: string,
     updates: Partial<Omit<WalkthroughPoint, 'id'>>

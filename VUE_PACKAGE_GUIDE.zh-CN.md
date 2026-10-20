@@ -81,6 +81,7 @@ import { parseProjectFileData } from './utils/projectFile';
 import type {
   DataStore,
   FloorplanEditorHandle,
+  ElementPropertiesUpdates,
   ObjectAddedEvent,
   OpeningCatalogConfig,
   Project,
@@ -198,6 +199,7 @@ export const FloorplanEditor = defineComponent({
       getProject: () => handle.value?.getProject() ?? null,
       loadProject: (project: Project) => handle.value?.loadProject(project),
       updateFileData: (data: ProjectFileData) => handle.value?.updateFileData(data),
+      updateElementProperties: (id: string, updates: ElementPropertiesUpdates) => handle.value?.updateElementProperties(id, updates),
       focus: () => handle.value?.focus(),
       save: () => handle.value?.save() ?? Promise.resolve(null)
     });

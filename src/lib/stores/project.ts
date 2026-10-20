@@ -1,7 +1,7 @@
 import { writable, derived, get } from 'svelte/store';
 import { GenerateObjectsError } from '$lib/models/types';
 import { refreshFurnitureElevations, validateGroundHeight } from '$lib/utils/furniturePlacement';
-import type { BatchGridPlacementInput } from '$lib/models/types';
+import type { BatchGridPlacementInput, ElementPropertiesUpdates } from '$lib/models/types';
 import type { Project, Floor, Wall, Door, Window as Win, WallArt, FurnitureItem, Point, Stair, Column, BackgroundImage, GuideLine, ElementGroup, CustomPattern, ExternalObjectInput, GenerateObjectsInput, GenerateObjectsResult, WalkthroughPoint, ClipboardElement, ClipboardPayload } from '$lib/models/types';
 
 
@@ -155,6 +155,26 @@ export function updateOptionsElement(kind: import('$lib/models/types').OptionsEl
     const target = collections[kind].find((item) => item.id === id);
     if (target) Object.assign(target, updates);
   }, 'Updated element options');
+}
+
+export function updateElementProperties(id: string, updates: ElementPropertiesUpdates): void {
+  const protectedKeys = new Set(['id', 'catalogId', 'wallId', 'walls', 'kind', 'type', 'stairType', 'shape', 'elevation', '__proto__', 'prototype', 'constructor']);
+  for (const key of Object.keys(updates)) {
+    if (protectedKeys.has(key)) throw new Error(`不能修改保留字段：${key}`);
+  }
+  validateGroundHeight(updates.groundHeight);
+  const values = structuredClone(updates);
+  mutate((floor) => {
+    const collections = [floor.walls, floor.doors, floor.windows, floor.wallArt ?? [], floor.furniture,
+      floor.rooms, floor.stairs, floor.columns, floor.textAnnotations ?? [], floor.walkthroughPoints ?? []];
+    for (const collection of collections) {
+      const target = collection.find((item) => item.id === id);
+      if (target) {
+        Object.assign(target, values);
+        return;
+      }
+    }
+  }, 'Updated element properties');
 }
 
 // Undo / Redo
